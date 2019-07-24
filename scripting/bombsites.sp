@@ -3,6 +3,7 @@
 
 #include <sourcemod> 
 #include <sdktools> 
+#include <cstrike> 
 
 public Plugin myinfo =
 {
