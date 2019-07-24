@@ -3,6 +3,6 @@
 	"Only One Site"
 	{
 		"#format"		"{1:c}"
-		"en"			"Only bombsite {1} enabled !!!"
+		"en"			"Only bombsite {1} is enabled !!!"
 	}
 }
