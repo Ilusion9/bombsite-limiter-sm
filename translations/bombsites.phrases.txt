@@ -1,0 +1,8 @@
+"Phrases"
+{
+	"Only One Site"
+	{
+		"#format"		"{1:c}"
+		"en"			"Only bombsite {1} enabled !!!"
+	}
+}
