@@ -7,9 +7,9 @@
 
 public Plugin myinfo =
 {
-    name = "Limit Bombsites",
+    name = "Bombsite Locker",
     author = "Ilusion9",
-    description = "Enable only one site when there are fewer CTs than the accepted limit",
+    description = "Enable only one site if there are fewer CTs than the accepted limit",
     version = "1.0",
     url = "https://github.com/Ilusion9/"
 };
