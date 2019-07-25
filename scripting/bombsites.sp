@@ -9,39 +9,30 @@ public Plugin myinfo =
 {
     name = "Bombsite Locker",
     author = "Ilusion9",
-    description = "Enable only one site if there are fewer CTs than the accepted limit",
-    version = "1.0",
+    description = "Disable bombsites if there are fewer CTs than the accepted limit",
+    version = "1.1",
     url = "https://github.com/Ilusion9/"
 };
 
-ArrayList g_Sites;
-
-bool g_MapConfig;
-
-int g_EnabledSite;
-int g_MinCTPlayers;
+ArrayList g_BombSites;
+StringMap g_Configuration;
 
 public void OnPluginStart() 
 {
-	/* Load translation file */
 	LoadTranslations("bombsites.phrases");
 	
-	/* Arraylist constructor */
-	g_Sites = new ArrayList();
+	g_BombSites = new ArrayList();
+	g_Configuration = new StringMap();
 	
-	/* Hook game events */
 	HookEvent("round_freeze_end", Event_RoundFreezeEnd);
 }
 
 public void OnMapStart()
-{
-	g_MapConfig = false;
-	
-	/* Find all bomb sites of this map */
+{	
 	int ent = -1;
 	while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
 	{
-		g_Sites.Push(ent);
+		g_BombSites.Push(ent);
 	}
 	
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];
@@ -50,44 +41,38 @@ public void OnMapStart()
 	GetCurrentMap(map, sizeof(map));
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsites.cfg");
 	
-	/* Open the configuration file */
 	if (!kv.ImportFromFile(path)) 
 	{
 		SetFailState("The configuration file could not be read.");
 	}
 	
-	/* Get the configuration for this map */
 	if (kv.JumpToKey(map)) 
-	{	
-		g_MapConfig = true;
-		char value[128];
-		
-		/* Get the available bomb site */
-		kv.GetString("enabled_site", value, sizeof(value));
-		
-		if (IsCharAlpha(value[0]))
+	{
+		if (kv.GotoFirstSubKey(false))
 		{
-			g_EnabledSite = IsCharUpper(value[0]) ? (value[0] - 65) : (value[0] - 97);
-			
-			if (g_EnabledSite >= g_Sites.Length)
+			do 
 			{
-				LogError("There is no site %c available for this map.", g_EnabledSite + 65);
-				g_MapConfig = false;
-			}
-		}
-		else
-		{
-			LogError("The configuration file is corrupt (\"enabled_site\" value must be an alphabetical character).");
-			g_MapConfig = false;
-		}
-		
-		/* Get the CTs limit for this map to enable only one site */
-		kv.GetString("ct_limit", value, sizeof(value));
-		
-		if (!StringToIntEx(value, g_MinCTPlayers))
-		{
-			LogError("The configuration file is corrupt (\"ct_limit\" value must be a numerical character).");
-			g_MapConfig = false;
+				char key[64];
+				kv.GetSectionName(key, sizeof(key));
+				
+				if (key[1] || !IsCharAlpha(key[0]))
+				{
+					LogError("The configuration file is corrupt (The bomb site must be an alphabetical character).");
+					continue;
+				}
+				
+				key[0] = CharToUpper(key[0]);
+				
+				if (key[0] - 65 >= g_BombSites.Length)
+				{
+					LogError("There is no site %c available for this map.", key[0]);
+					continue;
+				}
+				
+				Format(key, sizeof(key), "%c", key[0]);
+				g_Configuration.SetValue(key, kv.GetNum(NULL_STRING, 0));
+				
+			} while (kv.GotoNextKey(false));
 		}
 	}
 	
@@ -96,12 +81,13 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	g_Sites.Clear();
+	g_BombSites.Clear();
+	g_Configuration.Clear();
 }
 
 public void OnConfigsExecuted()
 {
-	if (g_MapConfig)
+	if (g_Configuration.Size)
 	{
 		ConVar cvar = FindConVar("mp_join_grace_time"); 
 
@@ -114,36 +100,29 @@ public void OnConfigsExecuted()
 
 public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadcast) 
 {
-	/* Check if this map has a valid configuration */
-	if (!g_MapConfig) return;
-	
-	/* Get the number of CT players */
-	int numCT = GetTeamClientCount(CS_TEAM_CT);
-	
-	/* Enable only one site if there are fewer CTs than the limit */
-	if (numCT && numCT < g_MinCTPlayers)
+	if (g_Configuration.Size)
 	{
-		PrintToChatAll("%t", "Only One Site", g_EnabledSite + 65);
-		PrintToChatAll("%t", "Only One Site", g_EnabledSite + 65);
-		PrintToChatAll("%t", "Only One Site", g_EnabledSite + 65);
-		PrintToChatAll("%t", "Only One Site", g_EnabledSite + 65);
-		PrintToChatAll("%t", "Only One Site", g_EnabledSite + 65);
-
-		PrintHintTextToAll("%t", "Only One Site", g_EnabledSite + 65);
+		int numCT = GetTeamClientCount(CS_TEAM_CT);
 		
-		for (int i = 0; i < g_Sites.Length; i++)
+		for (int i = 0; i < g_BombSites.Length; i++)
 		{
-			if (i != g_EnabledSite)
+			int value;
+
+			char key[64];
+			Format(key, sizeof(key), "%c", i + 65);
+			
+			if (g_Configuration.GetValue(key, value))
 			{
-				AcceptEntityInput(g_Sites.Get(i), "Disable");
+				if (numCT < value)
+				{
+					AcceptEntityInput(g_BombSites.Get(i), "Disable");
+					PrintToChatAll("%t", "Bombsite Disabled", key);
+
+					continue;
+				}
 			}
-		}
-	}
-	else
-	{
-		for (int i = 0; i < g_Sites.Length; i++)
-		{
-			AcceptEntityInput(g_Sites.Get(i), "Enable");
+			
+			AcceptEntityInput(g_BombSites.Get(i), "Enable");
 		}
 	}
 }
