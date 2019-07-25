@@ -63,7 +63,7 @@ public void OnMapStart()
 		char value[128];
 		
 		/* Get the available bomb site */
-		kv.GetString("site", value, sizeof(value));
+		kv.GetString("enabled_site", value, sizeof(value));
 		
 		if (IsCharAlpha(value[0]))
 		{
@@ -77,16 +77,16 @@ public void OnMapStart()
 		}
 		else
 		{
-			LogError("The configuration file is corrupt (\"site\" value must be an alphabetical character).");
+			LogError("The configuration file is corrupt (\"enabled_site\" value must be an alphabetical character).");
 			g_MapConfig = false;
 		}
 		
 		/* Get the CTs limit for this map to enable only one site */
-		kv.GetString("limit", value, sizeof(value));
+		kv.GetString("ct_limit", value, sizeof(value));
 		
 		if (!StringToIntEx(value, g_MinCTPlayers))
 		{
-			LogError("The configuration file is corrupt (\"limit\" value must be a numerical character).");
+			LogError("The configuration file is corrupt (\"ct_limit\" value must be a numerical character).");
 			g_MapConfig = false;
 		}
 	}
