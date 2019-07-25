@@ -1,8 +1,8 @@
 "Phrases"
 {
-	"Only One Site"
+	"Bombsite Disabled"
 	{
-		"#format"		"{1:c}"
-		"en"			"Only bombsite {1} is enabled !!!"
+		"#format"		"{1:s}"
+		"en"			"Bombsite {1} is disabled this round!"
 	}
 }
