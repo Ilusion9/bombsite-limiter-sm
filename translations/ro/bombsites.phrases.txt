@@ -5,6 +5,6 @@
 	"Bombsite Disabled"
 	{
 		"#format"		"{1:s}"
-		"ro"			"{GREEN}SITE-UL {1}{NORMAL} este dezactivat pentru această rundă!"
+		"ro"			"{GREEN}Site-ul {1}{NORMAL} este dezactivat pentru această rundă!"
 	}
 }
