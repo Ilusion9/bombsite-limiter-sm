@@ -4,7 +4,6 @@
 #include <sourcemod> 
 #include <sdktools> 
 #include <cstrike> 
-#include <I9_csgo_colors> 
 
 public Plugin myinfo =
 {
@@ -125,5 +124,33 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 			
 			AcceptEntityInput(g_BombSites.Get(i), "Enable");
 		}
+	}
+}
+
+char g_TranslationColors[][] = {"{NORMAL}", "{DARKRED}", "{PINK}", "{GREEN}", "{YELLOW}", "{LIGHTGREEN}", "{RED}", "{GRAY}", "{BLUE}", "{DARKBLUE}", "{PURPLE}", "{ORANGE}"};
+char g_HexColors[][] = {"\x01", "\x02", "\x03", "\x04", "\x09", "\x06", "\x07", "\x08", "\x0B", "\x0C", "\x0E", "\x10"};
+
+void CPrintToChatAll(const char[] format, any ...)
+{
+	char buffer[254];
+	
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i))
+		{
+			SetGlobalTransTarget(i);
+			VFormat(buffer, sizeof(buffer), format, 2);
+			
+			TranslateColors(buffer, sizeof(buffer));
+			PrintToChat(i, " %s", buffer);
+		}
+	}
+}
+
+void TranslateColors(char[] buffer, int maxlen)
+{
+	for (int i = 0; i < sizeof(g_TranslationColors); i++)
+	{
+		ReplaceString(buffer, maxlen, g_TranslationColors[i], g_HexColors[i]);
 	}
 }
