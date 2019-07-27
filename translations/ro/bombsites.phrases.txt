@@ -1,0 +1,10 @@
+// Colors - {NORMAL}, {DARKRED}, {PINK}, {YELLOW}, {GREEN}, {LIGHTGREEN}, {RED}, {GRAY}, {BLUE}, {DARKBLUE}, {PURPLE}, {ORANGE}
+
+"Phrases"
+{
+	"Bombsite Disabled"
+	{
+		"#format"		"{1:s}"
+		"ro"			"{GREEN}SITE-UL {1}{NORMAL} ESTE DEZACTIVAT IN ACEASTA RUNDA!"
+	}
+}
