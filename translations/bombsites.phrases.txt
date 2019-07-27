@@ -1,8 +1,3 @@
-/**
-* COLORS
-* {NORMAL}, {DARKRED}, {PINK}, {YELLOW}, {GREEN}, {LIGHTGREEN}, {RED}, {GRAY}, {BLUE}, {DARKBLUE}, {PURPLE}, {ORANGE}
-*/
-
 "Phrases"
 {
 	"Bombsite Disabled"
