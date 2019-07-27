@@ -117,7 +117,7 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 				if (numCT < value)
 				{
 					AcceptEntityInput(g_BombSites.Get(i), "Disable");
-					CPrintToChatAll("%t", "Bombsite Disabled", key, key);
+					CPrintToChatAll("[SM] %t", "Bombsite Disabled", key, key);
 					
 					continue;
 				}
