@@ -116,13 +116,41 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 				if (numCT < value)
 				{
 					AcceptEntityInput(g_BombSites.Get(i), "Disable");
-					PrintToChatAll("%t", "Bombsite Disabled", key);
-
+					CPrintToChatAll("%t", "Bombsite Disabled", key, key);
+					
 					continue;
 				}
 			}
 			
 			AcceptEntityInput(g_BombSites.Get(i), "Enable");
 		}
+	}
+}
+
+void CPrintToChatAll(const char[] format, any ...)
+{
+	char buffer[254];
+	
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i))
+		{
+			SetGlobalTransTarget(i);
+			VFormat(buffer, sizeof(buffer), format, 2);
+			
+			ReplaceColors(buffer, sizeof(buffer));
+			PrintToChat(i, " %s", buffer);
+		}
+	}
+}
+
+char g_ColorsTrans[][] = {"{NORMAL}", "{DARKRED}", "{PINK}", "{GREEN}", "{YELLOW}", "{LIGHTGREEN}", "{RED}", "{GRAY}",  "{BLUE}", "{DARKBLUE}", "{PURPLE}",  "{ORANGE}"};
+char g_ColorsHex[][] = {"\x01", "\x02", "\x03", "\x04", "\x09", "\x06", "\x07", "\x08", "\x0B", "\x0C", "\x0E", "\x10"};
+
+void ReplaceColors(char[] buffer, int maxlen)
+{
+	for (int i = 0; i < sizeof(g_ColorsTrans); i++)
+	{
+		ReplaceString(buffer, maxlen, g_ColorsTrans[i], g_ColorsHex[i]);
 	}
 }
