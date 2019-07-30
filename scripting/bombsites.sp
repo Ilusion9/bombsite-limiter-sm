@@ -7,7 +7,7 @@
 
 public Plugin myinfo =
 {
-    name = "Bombsite Locker",
+    name = "Bombsite Limiter",
     author = "Ilusion9",
     description = "Disable bombsites if there are fewer CTs than the accepted limit",
     version = "2.0",
@@ -18,10 +18,13 @@ StringMap g_Configuration;
 
 public void OnPluginStart() 
 {
+	/* Load translation file */
 	LoadTranslations("bombsites.phrases");
 	
+	/* Map variable constructor */
 	g_Configuration = new StringMap();
 	
+	/* Hook game events */
 	HookEvent("round_freeze_end", Event_RoundFreezeEnd);
 }
 
@@ -30,14 +33,19 @@ public void OnConfigsExecuted()
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];
 	KeyValues kv = new KeyValues("BombSites"); 
 
+	/* Get the current map name */
 	GetCurrentMap(map, sizeof(map));
+	
+	/* Build a path to the configuration file */
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsites.cfg");
 	
+	/* Open the configuration file */
 	if (!kv.ImportFromFile(path)) 
 	{
 		SetFailState("The configuration file could not be read.");
 	}
 	
+	/* Jump to the current map configuration */
 	if (kv.JumpToKey(map)) 
 	{
 		if (kv.GotoFirstSubKey(false))
@@ -52,10 +60,12 @@ public void OnConfigsExecuted()
 		}
 	}
 	
+	/* Clear out the memory */
 	delete kv;
 	
 	if (g_Configuration.Size)
 	{
+		/* Players should not spawn after the freeze time ends */
 		ConVar cvar = FindConVar("mp_join_grace_time"); 
 
 		if (cvar)
@@ -74,16 +84,22 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 {
 	if (g_Configuration.Size)
 	{
-		int siteA = -1, siteB = -1;
+		int siteA = -1, siteB = -1, siteC = -1;
+		
+		/* Find player manager entity */
 		int ent = FindEntityByClassname(-1, "cs_player_manager");
 		
 		if (ent != -1)
 		{
 			float posA[3], posB[3];
 			
+			/* Bombisite A origin */
 			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", posA); 
+			
+			/* Bombisite B origin */
 			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", posB);
 			
+			/* Loop through all bombsites */
 			ent = -1;
 			while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
 			{
@@ -92,16 +108,26 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 				GetEntPropVector(ent, Prop_Send,"m_vecMins", vecMins); 
 				GetEntPropVector(ent, Prop_Send,"m_vecMaxs", vecMaxs);
 				
+				/* Check if this bombsite is A */
 				if (IsVecBetween(posA, vecMins, vecMaxs)) 
 				{
 					siteA = ent; 
 				}
 				
+				/* Check if this bombsite is B */
 				else if (IsVecBetween(posB, vecMins, vecMaxs)) 
 				{
 					siteB = ent; 
 				}
 				
+				/* Bombsite C */
+				else
+				{
+					if (siteC != -1) continue;
+					siteC = ent;
+				}
+				
+				/* Enable all bombsites */
 				AcceptEntityInput(ent, "Enable");
 			}
 		}
@@ -109,6 +135,7 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 		int value;
 		int numCT = GetCounterTerroristsCount();
 		
+		/* Limit bombsite A */
 		if (siteA != -1)
 		{			
 			if (g_Configuration.GetValue("A", value))
@@ -116,11 +143,12 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 				if (numCT < value)
 				{
 					AcceptEntityInput(siteA, "Disable");
-					PrintToChatAll(" \x04[SITE]\x01 %t", "Single Bombsite Disabled", "\x04A\x01");
+					PrintToChatAll(" \x04[SITE A]\x01 %t", "Bombsite Disabled", "\x04A\x01");
 				}
 			}
 		}
 		
+		/* Limit bombsite B */
 		if (siteB != -1)
 		{
 			if (g_Configuration.GetValue("B", value))
@@ -128,30 +156,20 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 				if (numCT < value)
 				{
 					AcceptEntityInput(siteB, "Disable");
-					PrintToChatAll(" \x04[SITE]\x01 %t", "Single Bombsite Disabled", "\x04B\x01");
+					PrintToChatAll(" \x04[SITE B]\x01 %t", "Bombsite Disabled", "\x04B\x01");
 				}
 			}
 		}
 		
-		if (g_Configuration.GetValue("C", value))
+		/* Limit bombsite C */
+		if (siteC != -1)
 		{
-			if (numCT < value)
+			if (g_Configuration.GetValue("C", value))
 			{
-				bool hasSiteC;
-				
-				ent = -1;
-				while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
+				if (numCT < value)
 				{
-					if (ent != siteA && ent != siteB)
-					{
-						hasSiteC = true;
-						AcceptEntityInput(ent, "Disable");
-					}
-				}
-				
-				if (hasSiteC)
-				{
-					PrintToChatAll(" \x04[SITE]\x01 %t", "Multiple Bombsites Disabled", "\x04C etc.\x01");
+					AcceptEntityInput(siteC, "Disable");
+					PrintToChatAll(" \x04[SITE C]\x01 %t", "Bombsite Disabled", "\x04C\x01");
 				}
 			}
 		}
