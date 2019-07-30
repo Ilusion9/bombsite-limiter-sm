@@ -1,10 +1,14 @@
-/** Colors - {NORMAL}, {DARKRED}, {PINK}, {YELLOW}, {GREEN}, {LIGHTGREEN}, {RED}, {GRAY}, {BLUE}, {DARKBLUE}, {PURPLE}, {ORANGE} */
-
 "Phrases"
 {
-	"Bombsite Disabled"
+	"Single Bombsite Disabled"
 	{
 		"#format"		"{1:s}"
-		"ro"			"{GREEN}Site-ul {1}{NORMAL} este dezactivat pentru această rundă!"
+		"ro"			"Bombsite-ul {1} este dezactivat pentru această rundă!"
+	}
+	
+	"Multiple Bombsites Disabled"
+	{
+		"#format"		"{1:s}"
+		"ro"			"Bombsite-urile {1} sunt dezactivate pentru această rundă!"
 	}
 }
