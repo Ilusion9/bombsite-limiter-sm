@@ -1,14 +1,8 @@
 "Phrases"
 {
-	"Single Bombsite Disabled"
+	"Bombsite Disabled"
 	{
 		"#format"		"{1:s}"
 		"en"			"Bombsite {1} is disabled this round!"
-	}
-	
-	"Multiple Bombsites Disabled"
-	{
-		"#format"		"{1:s}"
-		"en"			"Bombsites {1} are disabled this round!"
 	}
 }
