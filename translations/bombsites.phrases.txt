@@ -1,10 +1,14 @@
-/** Colors - {NORMAL}, {DARKRED}, {PINK}, {YELLOW}, {GREEN}, {LIGHTGREEN}, {RED}, {GRAY}, {BLUE}, {DARKBLUE}, {PURPLE}, {ORANGE} */
-
 "Phrases"
 {
-	"Bombsite Disabled"
+	"Single Bombsite Disabled"
 	{
 		"#format"		"{1:s}"
-		"en"			"{GREEN}Bombsite {1}{NORMAL} is disabled for this round!"
+		"en"			"Bombsite {1} is disabled this round!"
+	}
+	
+	"Multiple Bombsites Disabled"
+	{
+		"#format"		"{1:s}"
+		"en"			"Bombsites {1} are disabled this round!"
 	}
 }
