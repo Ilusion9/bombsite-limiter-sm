@@ -137,16 +137,22 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 		{
 			if (numCT < value)
 			{
+				bool hasSiteC;
+				
 				ent = -1;
 				while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
 				{
 					if (ent != siteA && ent != siteB)
 					{
+						hasSiteC = true;
 						AcceptEntityInput(ent, "Disable");
 					}
 				}
 				
-				PrintToChatAll(" \x04[SITE]\x01 %t", "Multiple Bombsites Disabled", "\x04C etc.\x01");
+				if (hasSiteC)
+				{
+					PrintToChatAll(" \x04[SITE]\x01 %t", "Multiple Bombsites Disabled", "\x04C etc.\x01");
+				}
 			}
 		}
 	}
