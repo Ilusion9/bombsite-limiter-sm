@@ -1,8 +1,0 @@
-"Phrases"
-{
-	"Bombsite Disabled"
-	{
-		"#format"		"{1:s}"
-		"ro"			"Bombsite-ul {1} este dezactivat pentru această rundă!"
-	
-}
