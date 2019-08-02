@@ -58,6 +58,7 @@ public void OnConfigsExecuted()
 		{
 			g_BombsiteToLock = SITE_A;
 		}
+		
 		else if (StrEqual(key, "B", false))
 		{
 			g_BombsiteToLock = SITE_B;
@@ -116,6 +117,7 @@ public void OnFreezeTimeEnd(any data)
 				{
 					siteA = ent; 
 				}
+				
 				else if (IsVecBetween(posB, vecMins, vecMaxs)) 
 				{
 					siteB = ent; 
@@ -129,19 +131,23 @@ public void OnFreezeTimeEnd(any data)
 		{
 			if (GetCounterTerroristsCount() < g_BombsiteLimit)
 			{
-				if (g_BombsiteToLock == SITE_A)
+				switch (g_BombsiteToLock)
 				{
-					AcceptEntityInput(siteA, "Disable");	
+					case SITE_A:
+					{
+						AcceptEntityInput(siteA, "Disable");	
 					
-					PrintToChatAll(" \x04[Bombsites]\x01 %t", "Bombsite Disabled Reason", "\x04A\x01", g_BombsiteLimit);
-					PrintCenterTextAll("%t", "Bombsite Disabled", "A");
-				}
-				else
-				{
-					AcceptEntityInput(siteB, "Disable");	
+						PrintToChatAll(" \x04[Bombsites]\x01 %t", "Bombsite Disabled Reason", "\x04A\x01", g_BombsiteLimit);
+						PrintCenterTextAll("%t", "Bombsite Disabled", "A");
+					}
 					
-					PrintToChatAll(" \x04[Bombsites]\x01 %t", "Bombsite Disabled Reason", "\x04B\x01", g_BombsiteLimit);
-					PrintCenterTextAll("%t", "Bombsite Disabled", "B");
+					case SITE_B:
+					{
+						AcceptEntityInput(siteB, "Disable");	
+						
+						PrintToChatAll(" \x04[Bombsites]\x01 %t", "Bombsite Disabled Reason", "\x04B\x01", g_BombsiteLimit);
+						PrintCenterTextAll("%t", "Bombsite Disabled", "B");
+					}
 				}
 			}
 		}
