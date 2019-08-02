@@ -9,6 +9,6 @@
 	"Bombsite Disabled"
 	{
 		"#format"		"{1:s}"
-		"en"			"Bombsite {1} is restricted this round!"
+		"en"			"Bombsite {1} is restricted this round."
 	}
 }
