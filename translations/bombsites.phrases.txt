@@ -3,7 +3,7 @@
 	"Bombsite Disabled Reason"
 	{
 		"#format"		"{1:s},{2:i}"
-		"en"			"Bombsite {1} is restricted due to fewer CTs than {2}"
+		"en"			"> Bombsite {1} is restricted due to fewer Counter-Terrorists than {2}"
 	}
 	
 	"Bombsite Disabled"
