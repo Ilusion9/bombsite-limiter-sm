@@ -137,7 +137,7 @@ public void OnFreezeTimeEnd(any data)
 					{
 						AcceptEntityInput(siteA, "Disable");	
 					
-						PrintToChatAll(" \x04[SITE]\x01 %t", "Bombsite Disabled Reason", "\x04A\x01", g_BombsiteLimit);
+						PrintToChatAll(" \x04[SITE]\x01 %t", "Bombsite Disabled Reason", "A", g_BombsiteLimit);
 						PrintCenterTextAll("%t", "Bombsite Disabled", "A");
 					}
 					
@@ -145,7 +145,7 @@ public void OnFreezeTimeEnd(any data)
 					{
 						AcceptEntityInput(siteB, "Disable");	
 						
-						PrintToChatAll(" \x04[SITE]\x01 %t", "Bombsite Disabled Reason", "\x04B\x01", g_BombsiteLimit);
+						PrintToChatAll(" \x04[SITE]\x01 %t", "Bombsite Disabled Reason", "B", g_BombsiteLimit);
 						PrintCenterTextAll("%t", "Bombsite Disabled", "B");
 					}
 				}
