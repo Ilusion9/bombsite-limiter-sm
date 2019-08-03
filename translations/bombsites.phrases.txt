@@ -11,4 +11,20 @@
 		"#format"		"{1:s}"
 		"en"			"Bombsite {1} is restricted this round."
 	}
+	
+	"Invalid Bombsite"
+	{
+		"en"			"Invalid bombsite specified (the bombsite must be A or B)"
+	}
+	
+	"Invalid Limit"
+	{
+		"en"			"Invalid limit specified (the limit must be numerical and greater than 0)"
+	}
+	
+	"Bombsite Locked"
+	{
+		"#format"		"{1:c},{2:i}"
+		"en"			"The restricted bombsite will be \"{1}\" (limit: {2} CTs)"
+	}
 }
