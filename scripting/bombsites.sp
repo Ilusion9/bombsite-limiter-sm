@@ -28,6 +28,7 @@ public void OnPluginStart()
 {
 	LoadTranslations("bombsites.phrases");
 	HookEvent("round_freeze_end", Event_RoundFreezeEnd);
+	RegAdminCmd("sm_setbombsite", Command_SetBombsite, ADMFLAG_RCON, "sm_setbombsite <A or B> [limit]");
 }
 
 public void OnMapStart()
@@ -123,7 +124,7 @@ public void OnFreezeTimeEnd(any data)
 					siteB = ent; 
 				}
 				
-				AcceptEntityInput(siteA, "Enable");
+				AcceptEntityInput(ent, "Enable");
 			}
 		}
 		
@@ -152,6 +153,51 @@ public void OnFreezeTimeEnd(any data)
 			}
 		}
 	}
+}
+
+public Action Command_SetBombsite(int client, int args)
+{
+	if (args < 1)
+	{
+		ReplyToCommand(client, "[SM] Usage: sm_setbombsite <A or B> [limit]");
+		return Plugin_Handled;
+	}
+	
+	char arg[64];
+	GetCmdArg(1, arg, sizeof(arg));
+	
+	if (StrEqual(arg, "A", false))
+	{
+		g_BombsiteToLock = SITE_A;
+	}
+	
+	else if (StrEqual(arg, "B", false))
+	{
+		g_BombsiteToLock = SITE_B;
+	}
+	
+	else
+	{
+		ReplyToCommand(client, "[SM] %t", "Invalid Bombsite");
+		return Plugin_Handled;
+	}
+	
+	if (args > 1)
+	{
+		GetCmdArg(2, arg, sizeof(arg));
+		
+		int limit;
+		if (StringToIntEx(arg, limit) == 0 || limit < 0)
+		{
+			ReplyToCommand(client, "[SM] %t", "Invalid Limit");
+			return Plugin_Handled;
+		}
+		
+		g_BombsiteLimit = limit;
+	}
+	
+	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", view_as<int>(g_BombsiteToLock) + 64, g_BombsiteLimit);
+	return Plugin_Handled;
 }
 
 stock bool IsVecBetween(const float vecVector[3], const float vecMin[3], const float vecMax[3]) 
