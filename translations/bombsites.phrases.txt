@@ -14,12 +14,7 @@
 	
 	"Invalid Bombsite"
 	{
-		"en"			"Invalid bombsite specified (the bombsite must be A or B)"
-	}
-	
-	"Invalid Limit"
-	{
-		"en"			"Invalid limit specified (the limit must be numerical and greater than 0)"
+		"en"			"Invalid bombsite specified"
 	}
 	
 	"Bombsite Locked"
