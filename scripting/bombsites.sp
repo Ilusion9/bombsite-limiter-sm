@@ -14,7 +14,7 @@ public Plugin myinfo =
     url = "https://github.com/Ilusion9/"
 };
 
-enum Sites
+enum Site
 {
 	SITE_NONE = 0,
 	SITE_A,
@@ -22,7 +22,7 @@ enum Sites
 };
 
 int g_BombsiteLimit;
-Sites g_BombsiteToLock;
+Site g_BombsiteToLock;
 
 public void OnPluginStart() 
 {
@@ -59,7 +59,6 @@ public void OnConfigsExecuted()
 		{
 			g_BombsiteToLock = SITE_A;
 		}
-		
 		else if (StrEqual(key, "B", false))
 		{
 			g_BombsiteToLock = SITE_B;
@@ -118,7 +117,6 @@ public void OnFreezeTimeEnd(any data)
 				{
 					siteA = ent; 
 				}
-				
 				else if (IsVecBetween(posB, vecMins, vecMaxs)) 
 				{
 					siteB = ent; 
@@ -166,35 +164,35 @@ public Action Command_SetBombsite(int client, int args)
 	char arg[64];
 	GetCmdArg(1, arg, sizeof(arg));
 	
+	Site bombsite;
 	if (StrEqual(arg, "A", false))
 	{
-		g_BombsiteToLock = SITE_A;
+		bombsite = SITE_A;
 	}
-	
 	else if (StrEqual(arg, "B", false))
 	{
-		g_BombsiteToLock = SITE_B;
+		bombsite = SITE_B;
 	}
-	
 	else
 	{
 		ReplyToCommand(client, "[SM] %t", "Invalid Bombsite");
 		return Plugin_Handled;
 	}
 	
+	int limit;
 	if (args > 1)
 	{
 		GetCmdArg(2, arg, sizeof(arg));
 		
-		int limit;
 		if (StringToIntEx(arg, limit) == 0 || limit < 0)
 		{
 			ReplyToCommand(client, "[SM] %t", "Invalid Limit");
 			return Plugin_Handled;
 		}
-		
-		g_BombsiteLimit = limit;
 	}
+	
+	g_BombsiteToLock = bombsite;
+	g_BombsiteLimit = limit;
 	
 	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", view_as<int>(g_BombsiteToLock) + 64, g_BombsiteLimit);
 	return Plugin_Handled;
