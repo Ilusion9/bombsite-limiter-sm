@@ -164,14 +164,13 @@ public Action Command_SetBombsite(int client, int args)
 	char arg[64];
 	GetCmdArg(1, arg, sizeof(arg));
 	
-	Site bombsite;
 	if (StrEqual(arg, "A", false))
 	{
-		bombsite = SITE_A;
+		g_BombsiteToLock = SITE_A;
 	}
 	else if (StrEqual(arg, "B", false))
 	{
-		bombsite = SITE_B;
+		g_BombsiteToLock = SITE_B;
 	}
 	else
 	{
@@ -179,21 +178,12 @@ public Action Command_SetBombsite(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	int limit;
 	if (args > 1)
 	{
 		GetCmdArg(2, arg, sizeof(arg));
-		
-		if (StringToIntEx(arg, limit) == 0 || limit < 0)
-		{
-			ReplyToCommand(client, "[SM] %t", "Invalid Limit");
-			return Plugin_Handled;
-		}
+		g_BombsiteLimit = StringToInt(arg);
 	}
-	
-	g_BombsiteToLock = bombsite;
-	g_BombsiteLimit = limit;
-	
+
 	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", view_as<int>(g_BombsiteToLock) + 64, g_BombsiteLimit);
 	return Plugin_Handled;
 }
