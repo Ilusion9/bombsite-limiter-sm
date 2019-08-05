@@ -20,6 +20,6 @@
 	"Bombsite Locked"
 	{
 		"#format"		"{1:c},{2:i}"
-		"en"			"The restricted bombsite will be {1} (limited at {2} CTs)"
+		"en"			"The restricted bombsite will be {1} - {2} CTs"
 	}
 }
