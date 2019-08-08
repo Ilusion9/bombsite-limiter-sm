@@ -72,7 +72,7 @@ public void OnConfigsExecuted()
 	
 	if (g_BombsiteToLock != SITE_NONE)
 	{
-		/* Players should not spawn be spawned after the freeze time ends */
+		/* Players should not be spawned after the freeze time ends */
 		ConVar cvar = FindConVar("mp_join_grace_time"); 
 
 		if (cvar)
