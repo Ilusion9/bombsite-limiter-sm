@@ -26,13 +26,9 @@ Site g_BombsiteToLock;
 
 public void OnPluginStart() 
 {
-	/* Load translation file */
 	LoadTranslations("bombsites.phrases");
 	
-	/* Hook a game event */
 	HookEvent("round_freeze_end", Event_RoundFreezeEnd);
-	
-	/* Register a new command */
 	RegAdminCmd("sm_setbombsite", Command_SetBombsite, ADMFLAG_RCON, "sm_setbombsite <A or B> [limit]");
 }
 
@@ -47,22 +43,16 @@ public void OnConfigsExecuted()
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];
 	KeyValues kv = new KeyValues("BombSites"); 
 
-	/* Get the current map name */
 	GetCurrentMap(map, sizeof(map));
-	
-	/* Build a path to the configuration file */
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsites.cfg");
 	
-	/* Open the configuration file */
 	if (!kv.ImportFromFile(path)) 
 	{
 		SetFailState("The configuration file could not be read.");
 	}
 	
-	/* Jump to the current map configuration */
 	if (kv.JumpToKey(map)) 
 	{
-		/* Get "site_locked" key value */
 		char key[64];
 		kv.GetString("site_locked", key, sizeof(key));
 		
@@ -75,7 +65,6 @@ public void OnConfigsExecuted()
 			g_BombsiteToLock = SITE_B;
 		}
 		
-		/* Get "ct_limit" key value */
 		g_BombsiteLimit = kv.GetNum("ct_limit", 0);
 	}
 	
@@ -95,7 +84,6 @@ public void OnConfigsExecuted()
 
 public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadcast) 
 {
-	/* Don't restrict bombsites in warmup */
 	if (GameRules_GetProp("m_bWarmupPeriod"))
 	{
 		return;
@@ -108,7 +96,6 @@ public void OnFreezeTimeEnd(any data)
 {
 	if (g_BombsiteToLock != SITE_NONE)
 	{
-		/* Find site A and B origins from cs_player_manager entity */
 		int siteA = -1, siteB = -1;
 		int ent = FindEntityByClassname(-1, "cs_player_manager");
 
@@ -116,13 +103,9 @@ public void OnFreezeTimeEnd(any data)
 		{
 			float originA[3], originB[3];
 			
-			/* Bombsite A origin */
 			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", originA); 
-			
-			/* Bombsite B origin */
 			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", originB);
 			
-			/* Iterate within all bombsites and see which of them contains these origins */
 			ent = -1;
 			while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
 			{
@@ -144,12 +127,10 @@ public void OnFreezeTimeEnd(any data)
 			}
 		}
 		
-		/* Check if the CTs are fewer than the accepted limit */
 		if (siteA != -1 && siteB != -1)
 		{
 			if (GetCounterTerroristsCount() < g_BombsiteLimit)
 			{
-				/* Check what bombsite is configured to be restricted and restrict it */
 				switch (g_BombsiteToLock)
 				{
 					case SITE_A:
@@ -181,7 +162,6 @@ public Action Command_SetBombsite(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	/* Get the first argument */
 	char arg[64];
 	GetCmdArg(1, arg, sizeof(arg));
 	
@@ -199,7 +179,6 @@ public Action Command_SetBombsite(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	/* Get the second argument */
 	if (args > 1)
 	{
 		GetCmdArg(2, arg, sizeof(arg));
