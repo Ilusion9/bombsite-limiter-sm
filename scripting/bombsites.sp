@@ -72,7 +72,7 @@ public void OnConfigsExecuted()
 	
 	if (g_BombsiteToLock != SITE_NONE)
 	{
-		/* Players should not be spawned after the freeze time ends */
+		// Players should not be spawned after the freeze time ends
 		ConVar cvar = FindConVar("mp_join_grace_time"); 
 
 		if (cvar)
@@ -96,29 +96,34 @@ public void OnFreezeTimeEnd(any data)
 {
 	if (g_BombsiteToLock != SITE_NONE)
 	{
+		/**
+		 * Thanks to exvel for his snippet
+		 * https://forums.alliedmods.net/showthread.php?t=136912
+		*/
+		
 		int siteA = -1, siteB = -1;
 		int ent = FindEntityByClassname(-1, "cs_player_manager");
 
 		if (ent != -1)
 		{
-			float originA[3], originB[3];
+			float vecCenterA[3], vecCenterB[3];
 			
-			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", originA); 
-			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", originB);
+			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", vecCenterA); 
+			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", vecCenterB);
 			
 			ent = -1;
 			while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
 			{
 				float vecMins[3], vecMaxs[3];
 				
-				GetEntPropVector(ent, Prop_Send,"m_vecMins", vecMins); 
-				GetEntPropVector(ent, Prop_Send,"m_vecMaxs", vecMaxs);
+				GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
+				GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
 				
-				if (IsVecBetween(originA, vecMins, vecMaxs)) 
+				if (IsVecBetween(vecCenterA, vecMins, vecMaxs)) 
 				{
 					siteA = ent; 
 				}
-				else if (IsVecBetween(originB, vecMins, vecMaxs)) 
+				else if (IsVecBetween(vecCenterB, vecMins, vecMaxs)) 
 				{
 					siteB = ent; 
 				}
