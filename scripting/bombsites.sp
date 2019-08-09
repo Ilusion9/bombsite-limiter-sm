@@ -191,7 +191,7 @@ public Action Command_SetBombsite(int client, int args)
 
 stock bool IsVecBetween(const float vecVector[3], const float vecMin[3], const float vecMax[3]) 
 {
-	for (int i = 0; i < sizeof(vecVector); i++)
+	for (int i = 0; i < 3; i++)
 	{
 		if (vecVector[i] < vecMin[i] || vecVector[i] > vecMax[i])
 		{
