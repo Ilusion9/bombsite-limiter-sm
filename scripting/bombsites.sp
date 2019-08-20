@@ -14,15 +14,20 @@ public Plugin myinfo =
     url = "https://github.com/Ilusion9/"
 };
 
-enum Site
+enum
 {
 	SITE_NONE = 0,
-	SITE_A,
+	SITE_A = 65,
 	SITE_B
 };
 
+bool g_IsFirstRound;
+
+int g_BombsiteA;
+int g_BombsiteB;
+
 int g_BombsiteLimit;
-Site g_BombsiteToLock;
+int g_BombsiteToLock;
 
 public void OnPluginStart() 
 {
@@ -33,9 +38,13 @@ public void OnPluginStart()
 }
 
 public void OnMapStart()
-{
+{	
 	g_BombsiteLimit = 0;
 	g_BombsiteToLock = SITE_NONE;
+	
+	g_IsFirstRound = true;
+	g_BombsiteA = -1;
+	g_BombsiteB = -1;
 }
 
 public void OnConfigsExecuted()
@@ -46,7 +55,7 @@ public void OnConfigsExecuted()
 	GetCurrentMap(map, sizeof(map));
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsites.cfg");
 	
-	if (!kv.ImportFromFile(path)) 
+	if (!kv.ImportFromFile(path))
 	{
 		SetFailState("The configuration file could not be read.");
 	}
@@ -60,6 +69,7 @@ public void OnConfigsExecuted()
 		{
 			g_BombsiteToLock = SITE_A;
 		}
+		
 		else if (StrEqual(key, "B", false))
 		{
 			g_BombsiteToLock = SITE_B;
@@ -72,9 +82,9 @@ public void OnConfigsExecuted()
 	
 	if (g_BombsiteToLock != SITE_NONE)
 	{
-		// Players should not be spawned after the freeze time ends
+		/* Players should not be spawned after the freeze time ends */
 		ConVar cvar = FindConVar("mp_join_grace_time"); 
-
+		
 		if (cvar)
 		{
 			cvar.IntValue = 0; 
@@ -88,73 +98,31 @@ public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadc
 	{
 		return;
 	}
-
-	RequestFrame(OnFreezeTimeEnd);
+	
+	RequestFrame(Frame_RoundFreezeEnd);
 }
 
-public void OnFreezeTimeEnd(any data)
+public void Frame_RoundFreezeEnd(any data)
 {
 	if (g_BombsiteToLock != SITE_NONE)
 	{
-		/**
-		 * Thanks to exvel for his snippet
-		 * https://forums.alliedmods.net/showthread.php?t=136912
-		*/
-		
-		int siteA = -1, siteB = -1;
-		int ent = FindEntityByClassname(-1, "cs_player_manager");
-
-		if (ent != -1)
+		if (g_IsFirstRound)
 		{
-			float vecCenterA[3], vecCenterB[3];
-			
-			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", vecCenterA); 
-			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", vecCenterB);
-			
-			ent = -1;
-			while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
-			{
-				float vecMins[3], vecMaxs[3];
-				
-				GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
-				GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
-				
-				if (IsVecBetween(vecCenterA, vecMins, vecMaxs)) 
-				{
-					siteA = ent; 
-				}
-				else if (IsVecBetween(vecCenterB, vecMins, vecMaxs)) 
-				{
-					siteB = ent; 
-				}
-				
-				AcceptEntityInput(ent, "Enable");
-			}
+			GetMapBombsites(g_BombsiteA, g_BombsiteB);
+			g_IsFirstRound = false;
 		}
 		
-		if (siteA != -1 && siteB != -1)
+		if (g_BombsiteA < 0 || g_BombsiteB < 0)
 		{
-			if (GetCounterTerroristsCount() < g_BombsiteLimit)
-			{
-				switch (g_BombsiteToLock)
-				{
-					case SITE_A:
-					{
-						AcceptEntityInput(siteA, "Disable");	
-					
-						PrintToChatAll("%t", "Bombsite Disabled Reason", "A", g_BombsiteLimit);
-						PrintCenterTextAll("%t", "Bombsite Disabled", "A");
-					}
-					
-					case SITE_B:
-					{
-						AcceptEntityInput(siteB, "Disable");	
-						
-						PrintToChatAll("%t", "Bombsite Disabled Reason", "B", g_BombsiteLimit);
-						PrintCenterTextAll("%t", "Bombsite Disabled", "B");
-					}
-				}
-			}
+			return;
+		}
+		
+		if (GetCounterTerroristsCount() < g_BombsiteLimit)
+		{
+			AcceptEntityInput(g_BombsiteToLock != SITE_A ? g_BombsiteB : g_BombsiteA, "Disable");	
+
+			PrintToChatAll("%t", "Bombsite Disabled Reason", g_BombsiteToLock, g_BombsiteLimit);
+			PrintCenterTextAll("%t", "Bombsite Disabled", g_BombsiteToLock);
 		}
 	}
 }
@@ -174,10 +142,12 @@ public Action Command_SetBombsite(int client, int args)
 	{
 		g_BombsiteToLock = SITE_A;
 	}
+	
 	else if (StrEqual(arg, "B", false))
 	{
 		g_BombsiteToLock = SITE_B;
 	}
+	
 	else
 	{
 		ReplyToCommand(client, "[SM] %t", "Invalid Bombsite");
@@ -190,15 +160,50 @@ public Action Command_SetBombsite(int client, int args)
 		g_BombsiteLimit = StringToInt(arg);
 	}
 
-	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", view_as<int>(g_BombsiteToLock) + 64, g_BombsiteLimit);
+	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", g_BombsiteToLock, g_BombsiteLimit);
 	return Plugin_Handled;
 }
 
-stock bool IsVecBetween(const float vecVector[3], const float vecMin[3], const float vecMax[3]) 
+stock void GetMapBombsites(int siteA, int siteB)
+{
+	int ent = FindEntityByClassname(-1, "cs_player_manager");
+
+	if (ent != -1)
+	{
+		/* Get bombsites coordinates from players radar */
+		float bombsiteCenterA[3], bombsiteCenterB[3];
+		
+		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", bombsiteCenterA); 
+		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", bombsiteCenterB);
+		
+		/* Find which site is A and which is B by checking those coordinates */
+		ent = -1;
+		
+		while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
+		{
+			float vecMins[3], vecMaxs[3];
+			
+			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
+			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
+			
+			if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs)) 
+			{
+				siteA = ent; 
+			}
+			
+			else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs)) 
+			{
+				siteB = ent;
+			}
+		}
+	}
+}
+
+stock bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
 {
 	for (int i = 0; i < 3; i++)
 	{
-		if (vecVector[i] < vecMin[i] || vecVector[i] > vecMax[i])
+		if (vec[i] < mins[i] || vec[i] > maxs[i])
 		{
 			return false;
 		}
@@ -218,6 +223,6 @@ stock int GetCounterTerroristsCount()
 			num++;
 		}
 	}
-	
+
 	return num;
 }
