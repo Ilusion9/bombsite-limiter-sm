@@ -94,12 +94,10 @@ public void OnConfigsExecuted()
 
 public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadcast) 
 {
-	if (GameRules_GetProp("m_bWarmupPeriod"))
+	if (!GameRules_GetProp("m_bWarmupPeriod"))
 	{
-		return;
+		RequestFrame(Frame_RoundFreezeEnd);
 	}
-	
-	RequestFrame(Frame_RoundFreezeEnd);
 }
 
 public void Frame_RoundFreezeEnd(any data)
@@ -112,17 +110,15 @@ public void Frame_RoundFreezeEnd(any data)
 			g_IsFirstRound = false;
 		}
 		
-		if (g_BombsiteA < 0 || g_BombsiteB < 0)
+		if (g_BombsiteA != -1 && g_BombsiteB != -1)
 		{
-			return;
-		}
-		
-		if (GetCounterTerroristsCount() < g_BombsiteLimit)
-		{
-			AcceptEntityInput(g_BombsiteToLock != SITE_A ? g_BombsiteB : g_BombsiteA, "Disable");	
+			if (GetCounterTerroristsCount() < g_BombsiteLimit)
+			{
+				AcceptEntityInput(g_BombsiteToLock != SITE_A ? g_BombsiteB : g_BombsiteA, "Disable");	
 
-			PrintToChatAll("%t", "Bombsite Disabled Reason", g_BombsiteToLock, g_BombsiteLimit);
-			PrintCenterTextAll("%t", "Bombsite Disabled", g_BombsiteToLock);
+				PrintToChatAll("%t", "Bombsite Disabled Reason", g_BombsiteToLock, g_BombsiteLimit);
+				PrintCenterTextAll("%t", "Bombsite Disabled", g_BombsiteToLock);
+			}
 		}
 	}
 }
