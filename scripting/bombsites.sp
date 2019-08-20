@@ -112,6 +112,9 @@ public void Frame_RoundFreezeEnd(any data)
 		
 		if (g_BombsiteA != -1 && g_BombsiteB != -1)
 		{
+			AcceptEntityInput(g_BombsiteA, "Enable");
+			AcceptEntityInput(g_BombsiteB, "Enable");
+
 			if (GetCounterTerroristsCount() < g_BombsiteLimit)
 			{
 				AcceptEntityInput(g_BombsiteToLock != SITE_A ? g_BombsiteB : g_BombsiteA, "Disable");	
