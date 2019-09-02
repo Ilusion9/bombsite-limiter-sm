@@ -16,18 +16,17 @@ public Plugin myinfo =
 
 enum
 {
-	SITE_NONE = 0,
 	SITE_A = 65,
 	SITE_B
 };
 
-bool g_IsFirstRound;
+bool g_bIsFirstRound;
 
-int g_BombsiteA;
-int g_BombsiteB;
+int g_iSiteA;
+int g_iSiteB;
 
-int g_BombsiteLimit;
-int g_BombsiteToLock;
+int g_iSiteLimit;
+int g_iSiteToLock;
 
 public void OnPluginStart() 
 {
@@ -39,12 +38,13 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {	
-	g_BombsiteLimit = 0;
-	g_BombsiteToLock = SITE_NONE;
+	g_bIsFirstRound = true;
 	
-	g_IsFirstRound = true;
-	g_BombsiteA = -1;
-	g_BombsiteB = -1;
+	g_iSiteA = -1;
+	g_iSiteB = -1;
+
+	g_iSiteLimit = 0;
+	g_iSiteToLock = 0;
 }
 
 public void OnConfigsExecuted()
@@ -55,8 +55,7 @@ public void OnConfigsExecuted()
 	GetCurrentMap(map, sizeof(map));
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsites.cfg");
 	
-	if (!kv.ImportFromFile(path))
-	{
+	if (!kv.ImportFromFile(path)) {
 		SetFailState("The configuration file could not be read.");
 	}
 	
@@ -67,60 +66,55 @@ public void OnConfigsExecuted()
 		
 		if (StrEqual(key, "A", false))
 		{
-			g_BombsiteToLock = SITE_A;
+			g_iSiteToLock = SITE_A;
 		}
 		
 		else if (StrEqual(key, "B", false))
 		{
-			g_BombsiteToLock = SITE_B;
+			g_iSiteToLock = SITE_B;
 		}
 		
-		g_BombsiteLimit = kv.GetNum("ct_limit", 0);
+		g_iSiteLimit = kv.GetNum("ct_limit", 0);
 	}
 	
 	delete kv;
 	
-	if (g_BombsiteToLock != SITE_NONE)
+	if (g_iSiteToLock)
 	{
 		/* Players should not be spawned after the freeze time ends */
-		ConVar cvar = FindConVar("mp_join_grace_time"); 
 		
-		if (cvar)
-		{
-			cvar.IntValue = 0; 
-		}
+		FindConVar("mp_join_grace_time").IntValue = 0;
 	}
 }
 
 public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadcast) 
 {
-	if (!GameRules_GetProp("m_bWarmupPeriod"))
-	{
-		RequestFrame(Frame_RoundFreezeEnd);
-	}
+	if (GameRules_GetProp("m_bWarmupPeriod")) return;
+
+	RequestFrame(Frame_RoundFreezeEnd);
 }
 
 public void Frame_RoundFreezeEnd(any data)
 {
-	if (g_BombsiteToLock != SITE_NONE)
+	if (g_iSiteToLock)
 	{
-		if (g_IsFirstRound)
+		if (g_bIsFirstRound)
 		{
-			GetMapBombsites(g_BombsiteA, g_BombsiteB);
-			g_IsFirstRound = false;
+			GetMapBombsites(g_iSiteA, g_iSiteB);
+			g_bIsFirstRound = false;
 		}
 		
-		if (g_BombsiteA != -1 && g_BombsiteB != -1)
+		if (g_iSiteA != -1 && g_iSiteB != -1)
 		{
-			AcceptEntityInput(g_BombsiteA, "Enable");
-			AcceptEntityInput(g_BombsiteB, "Enable");
+			AcceptEntityInput(g_iSiteA, "Enable");
+			AcceptEntityInput(g_iSiteB, "Enable");
 
-			if (GetCounterTerroristsCount() < g_BombsiteLimit)
+			if (GetCounterTerroristsCount() < g_iSiteLimit)
 			{
-				AcceptEntityInput(g_BombsiteToLock != SITE_A ? g_BombsiteB : g_BombsiteA, "Disable");	
+				AcceptEntityInput(g_iSiteToLock != SITE_A ? g_iSiteB : g_iSiteA, "Disable");	
 
-				PrintToChatAll("%t", "Bombsite Disabled Reason", g_BombsiteToLock, g_BombsiteLimit);
-				PrintCenterTextAll("%t", "Bombsite Disabled", g_BombsiteToLock);
+				PrintToChatAll("%t", "Bombsite Disabled Reason", g_iSiteToLock, g_iSiteLimit);
+				PrintCenterTextAll("%t", "Bombsite Disabled", g_iSiteToLock);
 			}
 		}
 	}
@@ -139,12 +133,12 @@ public Action Command_SetBombsite(int client, int args)
 	
 	if (StrEqual(arg, "A", false))
 	{
-		g_BombsiteToLock = SITE_A;
+		g_iSiteToLock = SITE_A;
 	}
 	
 	else if (StrEqual(arg, "B", false))
 	{
-		g_BombsiteToLock = SITE_B;
+		g_iSiteToLock = SITE_B;
 	}
 	
 	else
@@ -156,14 +150,14 @@ public Action Command_SetBombsite(int client, int args)
 	if (args > 1)
 	{
 		GetCmdArg(2, arg, sizeof(arg));
-		g_BombsiteLimit = StringToInt(arg);
+		g_iSiteLimit = StringToInt(arg);
 	}
 
-	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", g_BombsiteToLock, g_BombsiteLimit);
+	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", g_iSiteToLock, g_iSiteLimit);
 	return Plugin_Handled;
 }
 
-stock void GetMapBombsites(int siteA, int siteB)
+stock void GetMapBombsites(int A, int B)
 {
 	int ent = FindEntityByClassname(-1, "cs_player_manager");
 
@@ -185,14 +179,14 @@ stock void GetMapBombsites(int siteA, int siteB)
 			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
 			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
 			
-			if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs)) 
+			if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs))
 			{
-				siteA = ent; 
+				A = ent; 
 			}
 			
-			else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs)) 
+			else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs))
 			{
-				siteB = ent;
+				B = ent;
 			}
 		}
 	}
