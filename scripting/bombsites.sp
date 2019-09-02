@@ -20,11 +20,6 @@ enum
 	SITE_B
 };
 
-bool g_bIsFirstRound;
-
-int g_iSiteA;
-int g_iSiteB;
-
 int g_iSiteLimit;
 int g_iSiteToLock;
 
@@ -37,12 +32,7 @@ public void OnPluginStart()
 }
 
 public void OnMapStart()
-{	
-	g_bIsFirstRound = true;
-	
-	g_iSiteA = -1;
-	g_iSiteB = -1;
-
+{
 	g_iSiteLimit = 0;
 	g_iSiteToLock = 0;
 }
@@ -98,20 +88,46 @@ public void Frame_RoundFreezeEnd(any data)
 {
 	if (g_iSiteToLock)
 	{
-		if (g_bIsFirstRound)
-		{
-			GetMapBombsites(g_iSiteA, g_iSiteB);
-			g_bIsFirstRound = false;
-		}
-		
-		if (g_iSiteA != -1 && g_iSiteB != -1)
-		{
-			AcceptEntityInput(g_iSiteA, "Enable");
-			AcceptEntityInput(g_iSiteB, "Enable");
+		int siteA = -1, siteB = -1;
+		int ent = FindEntityByClassname(-1, "cs_player_manager");
 
+		if (ent != -1)
+		{
+			/* Get bombsites coordinates from players radar */
+			float bombsiteCenterA[3], bombsiteCenterB[3];
+			
+			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", bombsiteCenterA); 
+			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", bombsiteCenterB);
+			
+			/* Find which site is A and which is B by checking those coordinates */
+			ent = -1;
+			
+			while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
+			{
+				float vecMins[3], vecMaxs[3];
+				
+				GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
+				GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
+				
+				if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs))
+				{
+					siteA = ent; 
+				}
+				
+				else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs))
+				{
+					siteB = ent;
+				}
+				
+				AcceptEntityInput(ent, "Enable");
+			}
+		}
+				
+		if (siteA != -1 && siteB != -1)
+		{
 			if (GetCounterTerroristsCount() < g_iSiteLimit)
 			{
-				AcceptEntityInput(g_iSiteToLock != SITE_A ? g_iSiteB : g_iSiteA, "Disable");	
+				AcceptEntityInput(g_iSiteToLock != SITE_A ? siteB : siteA, "Disable");	
 
 				PrintToChatAll("%t", "Bombsite Disabled Reason", g_iSiteToLock, g_iSiteLimit);
 				PrintCenterTextAll("%t", "Bombsite Disabled", g_iSiteToLock);
@@ -155,41 +171,6 @@ public Action Command_SetBombsite(int client, int args)
 
 	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", g_iSiteToLock, g_iSiteLimit);
 	return Plugin_Handled;
-}
-
-stock void GetMapBombsites(int A, int B)
-{
-	int ent = FindEntityByClassname(-1, "cs_player_manager");
-
-	if (ent != -1)
-	{
-		/* Get bombsites coordinates from players radar */
-		float bombsiteCenterA[3], bombsiteCenterB[3];
-		
-		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", bombsiteCenterA); 
-		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", bombsiteCenterB);
-		
-		/* Find which site is A and which is B by checking those coordinates */
-		ent = -1;
-		
-		while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
-		{
-			float vecMins[3], vecMaxs[3];
-			
-			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
-			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
-			
-			if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs))
-			{
-				A = ent; 
-			}
-			
-			else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs))
-			{
-				B = ent;
-			}
-		}
-	}
 }
 
 stock bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
