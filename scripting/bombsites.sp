@@ -20,6 +20,9 @@ enum
 	SITE_B
 };
 
+ConVar g_Cvar_FreezeTime;
+Handle g_Timer_FreezeEnd;
+
 int g_iSiteLimit;
 int g_iSiteToLock;
 
@@ -27,14 +30,21 @@ public void OnPluginStart()
 {
 	LoadTranslations("bombsites.phrases");
 	
-	HookEvent("round_freeze_end", Event_RoundFreezeEnd);
+	HookEvent("round_start", Event_RoundStart);
 	RegAdminCmd("sm_setbombsite", Command_SetBombsite, ADMFLAG_RCON, "sm_setbombsite <A or B> [limit]");
+	
+	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
 }
 
 public void OnMapStart()
 {
 	g_iSiteLimit = 0;
 	g_iSiteToLock = 0;
+}
+
+public void OnMapEnd()
+{
+	delete g_Timer_FreezeEnd;
 }
 
 public void OnConfigsExecuted()
@@ -72,19 +82,21 @@ public void OnConfigsExecuted()
 	if (g_iSiteToLock)
 	{
 		/* Players should not be spawned after the freeze time ends */
-		
 		FindConVar("mp_join_grace_time").IntValue = 0;
 	}
 }
 
-public void Event_RoundFreezeEnd(Event event, const char[] name, bool dontBroadcast) 
+public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
 {
-	if (GameRules_GetProp("m_bWarmupPeriod")) return;
-
-	RequestFrame(Frame_RoundFreezeEnd);
+	if (GameRules_GetProp("m_bWarmupPeriod")) {
+		return;
+	}
+	
+	delete g_Timer_FreezeEnd;
+	g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue < 1.0 ? 1.0 : g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
 }
 
-public void Frame_RoundFreezeEnd(any data)
+public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
 	if (g_iSiteToLock)
 	{
@@ -134,6 +146,9 @@ public void Frame_RoundFreezeEnd(any data)
 			}
 		}
 	}
+	
+	g_Timer_FreezeEnd = null;
+	return Plugin_Continue;
 }
 
 public Action Command_SetBombsite(int client, int args)
