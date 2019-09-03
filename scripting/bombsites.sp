@@ -10,7 +10,7 @@ public Plugin myinfo =
     name = "Bombsite Limiter",
     author = "Ilusion9",
     description = "Disable bombsite A or B if there are fewer CTs than the accepted limit",
-    version = "2.0",
+    version = "2.1",
     url = "https://github.com/Ilusion9/"
 };
 
@@ -29,10 +29,8 @@ int g_iSiteToLock;
 public void OnPluginStart() 
 {
 	LoadTranslations("bombsites.phrases");
-	
-	HookEvent("round_start", Event_RoundStart);
-	RegAdminCmd("sm_setbombsite", Command_SetBombsite, ADMFLAG_RCON, "sm_setbombsite <A or B> [limit]");
-	
+
+	HookEvent("round_start", Event_RoundStart);	
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
 }
 
@@ -92,100 +90,63 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	delete g_Timer_FreezeEnd;
-	g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue < 1.0 ? 1.0 : g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
+	if (g_iSiteToLock) 
+	{
+		delete g_Timer_FreezeEnd;
+		g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
+	}
 }
 
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
-	if (g_iSiteToLock)
+	int siteA = -1, siteB = -1;
+	int ent = FindEntityByClassname(-1, "cs_player_manager");
+
+	if (ent != -1)
 	{
-		int siteA = -1, siteB = -1;
-		int ent = FindEntityByClassname(-1, "cs_player_manager");
-
-		if (ent != -1)
+		/* Get bombsites coordinates from players radar */
+		float bombsiteCenterA[3], bombsiteCenterB[3];
+		
+		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", bombsiteCenterA); 
+		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", bombsiteCenterB);
+		
+		/* Find which site is A and which is B by checking those coordinates */
+		ent = -1;
+		
+		while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
 		{
-			/* Get bombsites coordinates from players radar */
-			float bombsiteCenterA[3], bombsiteCenterB[3];
+			float vecMins[3], vecMaxs[3];
 			
-			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", bombsiteCenterA); 
-			GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", bombsiteCenterB);
+			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
+			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
 			
-			/* Find which site is A and which is B by checking those coordinates */
-			ent = -1;
-			
-			while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
+			if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs))
 			{
-				float vecMins[3], vecMaxs[3];
-				
-				GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
-				GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
-				
-				if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs))
-				{
-					siteA = ent; 
-				}
-				
-				else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs))
-				{
-					siteB = ent;
-				}
-				
-				AcceptEntityInput(ent, "Enable");
+				siteA = ent; 
 			}
+			
+			else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs))
+			{
+				siteB = ent;
+			}
+			
+			AcceptEntityInput(ent, "Enable");
 		}
-				
-		if (siteA != -1 && siteB != -1)
+	}
+			
+	if (siteA != -1 && siteB != -1)
+	{
+		if (GetCounterTerroristsCount() < g_iSiteLimit)
 		{
-			if (GetCounterTerroristsCount() < g_iSiteLimit)
-			{
-				AcceptEntityInput(g_iSiteToLock != SITE_A ? siteB : siteA, "Disable");	
+			AcceptEntityInput(g_iSiteToLock != SITE_A ? siteB : siteA, "Disable");	
 
-				PrintToChatAll("%t", "Bombsite Disabled Reason", g_iSiteToLock, g_iSiteLimit);
-				PrintCenterTextAll("%t", "Bombsite Disabled", g_iSiteToLock);
-			}
+			PrintToChatAll("%t", "Bombsite Disabled Reason", g_iSiteToLock, g_iSiteLimit);
+			PrintCenterTextAll("%t", "Bombsite Disabled", g_iSiteToLock);
 		}
 	}
 	
 	g_Timer_FreezeEnd = null;
 	return Plugin_Continue;
-}
-
-public Action Command_SetBombsite(int client, int args)
-{
-	if (args < 1)
-	{
-		ReplyToCommand(client, "[SM] Usage: sm_setbombsite <A or B> [limit]");
-		return Plugin_Handled;
-	}
-	
-	char arg[64];
-	GetCmdArg(1, arg, sizeof(arg));
-	
-	if (StrEqual(arg, "A", false))
-	{
-		g_iSiteToLock = SITE_A;
-	}
-	
-	else if (StrEqual(arg, "B", false))
-	{
-		g_iSiteToLock = SITE_B;
-	}
-	
-	else
-	{
-		ReplyToCommand(client, "[SM] %t", "Invalid Bombsite");
-		return Plugin_Handled;
-	}
-	
-	if (args > 1)
-	{
-		GetCmdArg(2, arg, sizeof(arg));
-		g_iSiteLimit = StringToInt(arg);
-	}
-
-	ReplyToCommand(client, "[SM] %t", "Bombsite Locked", g_iSiteToLock, g_iSiteLimit);
-	return Plugin_Handled;
 }
 
 stock bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
