@@ -7,7 +7,7 @@
 
 public Plugin myinfo =
 {
-    name = "Bombsite Limiter",
+    name = "Bombsite Locker",
     author = "Ilusion9",
     description = "Disable bombsite A or B if there are fewer CTs than the accepted limit",
     version = "2.1",
@@ -28,7 +28,7 @@ int g_iSiteToLock;
 
 public void OnPluginStart() 
 {
-	LoadTranslations("bombsites.phrases");
+	LoadTranslations("bombsitelocker.phrases");
 
 	HookEvent("round_start", Event_RoundStart);	
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
@@ -48,10 +48,10 @@ public void OnMapEnd()
 public void OnConfigsExecuted()
 {
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];
-	KeyValues kv = new KeyValues("BombSites"); 
+	KeyValues kv = new KeyValues("BombsiteLocker"); 
 
 	GetCurrentMap(map, sizeof(map));
-	BuildPath(Path_SM, path, sizeof(path), "configs/bombsites.cfg");
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsitelocker.cfg");
 	
 	if (!kv.ImportFromFile(path)) {
 		SetFailState("The configuration file could not be read.");
