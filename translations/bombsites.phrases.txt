@@ -11,15 +11,4 @@
 		"#format"		"{1:c}"
 		"en"			"Bombsite {1} is restricted this round."
 	}
-	
-	"Invalid Bombsite"
-	{
-		"en"			"Invalid bombsite specified"
-	}
-	
-	"Bombsite Locked"
-	{
-		"#format"		"{1:c},{2:d}"
-		"en"			"The restricted bombsite will be {1} (limited at {2} CTs)"
-	}
 }
