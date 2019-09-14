@@ -15,7 +15,7 @@ public Plugin myinfo =
 };
 
 ConVar g_Cvar_FreezeTime;
-Handle g_Timer_LockSite;
+Handle g_Timer_FreezeEnd;
 
 int g_SiteLimit;
 char g_SiteLocked;
@@ -36,7 +36,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	delete g_Timer_LockSite;
+	delete g_Timer_FreezeEnd;
 }
 
 public void OnConfigsExecuted()
@@ -45,8 +45,8 @@ public void OnConfigsExecuted()
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsitelocker.cfg");
 	
 	KeyValues kv = new KeyValues("BombsiteLocker"); 
-	
-	if (!kv.ImportFromFile(path)) {
+	if (!kv.ImportFromFile(path))
+	{
 		SetFailState("The configuration file could not be read.");
 	}
 	
@@ -60,7 +60,8 @@ public void OnConfigsExecuted()
 		kv.GetString("site_locked", key, sizeof(key));
 		g_SiteLocked = CharToUpper(key[0]);
 		
-		if (g_SiteLocked != 'A' && g_SiteLocked != 'B') {
+		if (g_SiteLocked != 'A' && g_SiteLocked != 'B')
+		{
 			g_SiteLocked = 0;
 		}
 		
@@ -70,21 +71,24 @@ public void OnConfigsExecuted()
 	delete kv;
 	
 	/* Players should not be spawned after the freeze time ends */
-	if (g_SiteLocked) {
+	if (g_SiteLocked)
+	{
 		FindConVar("mp_join_grace_time").SetInt(0);
 	}
 }
 
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
 {
-	delete g_Timer_LockSite;
+	delete g_Timer_FreezeEnd;
 	
-	if (GameRules_GetProp("m_bWarmupPeriod")) {
+	if (GameRules_GetProp("m_bWarmupPeriod"))
+	{
 		return;
 	}
 	
-	if (g_SiteLocked) {
-		g_Timer_LockSite = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
+	if (g_SiteLocked)
+	{
+		g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
 	}
 }
 
@@ -124,7 +128,7 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 			AcceptEntityInput(ent, "Enable");
 		}
 	}
-		
+	
 	if (siteA != -1 && siteB != -1)
 	{
 		if (GetCounterTerroristsCount() < g_SiteLimit)
@@ -136,15 +140,16 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 		}
 	}
 	
-	g_Timer_LockSite = null;
+	g_Timer_FreezeEnd = null;
 	return Plugin_Continue;
 }
 
-stock bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
+bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
 {
 	for (int i = 0; i < 3; i++)
 	{
-		if (vec[i] < mins[i] || vec[i] > maxs[i]) {
+		if (vec[i] < mins[i] || vec[i] > maxs[i])
+		{
 			return false;
 		}
 	}
@@ -152,17 +157,16 @@ stock bool IsVecBetween(const float vec[3], const float mins[3], const float max
 	return true;
 }
 
-stock int GetCounterTerroristsCount()
+int GetCounterTerroristsCount()
 {
 	int num;
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) != CS_TEAM_CT) {
-			continue;
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT)
+		{
+			num++;
 		}
-		
-		num++;
 	}
 
 	return num;
