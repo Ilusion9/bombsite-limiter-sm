@@ -92,6 +92,7 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
+/* Original code from: https://forums.alliedmods.net/showthread.php?t=136912 */
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
 	int siteA = -1, siteB = -1;
