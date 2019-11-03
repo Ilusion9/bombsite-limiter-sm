@@ -16,12 +16,11 @@ public Plugin myinfo =
 ConVar g_Cvar_FreezeTime;
 Handle g_Timer_FreezeEnd;
 
-bool g_FirstMapConnection;
 int g_SiteA;
 int g_SiteB;
 
+char g_RestrictedSite;
 int g_RestrictedSiteLimit;
-char g_RestrictedSiteLetter;
 
 public void OnPluginStart()
 {
@@ -34,9 +33,8 @@ public void OnPluginStart()
 public void OnMapStart()
 {
 	g_RestrictedSiteLimit = 0;
-	g_RestrictedSiteLetter = 0; // null character
+	g_RestrictedSite = 0; // null character
 	
-	g_FirstMapConnection = true;
 	g_SiteA = -1;
 	g_SiteB = -1;
 }
@@ -50,26 +48,28 @@ public void OnConfigsExecuted()
 {
 	char path[PLATFORM_MAX_PATH];	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsitelocker.cfg");
-	
 	KeyValues kv = new KeyValues("BombsiteLocker"); 
+	
 	if (!kv.ImportFromFile(path))
 	{
-		SetFailState("The configuration file could not be read.");
+		LogError("The configuration file could not be read.");
+		return;
 	}
 	
-	char map[PLATFORM_MAX_PATH];
+	char map[PLATFORM_MAX_PATH], displayName[PLATFORM_MAX_PATH];
 	GetCurrentMap(map, sizeof(map));
+	GetMapDisplayName(map, displayName, sizeof(displayName));
 	
-	if (kv.JumpToKey(map)) 
+	if (kv.JumpToKey(displayName)) 
 	{
 		char key[64];
 		
 		kv.GetString("site_locked", key, sizeof(key));
-		g_RestrictedSiteLetter = CharToUpper(key[0]);
+		g_RestrictedSite = CharToUpper(key[0]);
 		
-		if (g_RestrictedSiteLetter != 'A' && g_RestrictedSiteLetter != 'B')
+		if (g_RestrictedSite != 'A' && g_RestrictedSite != 'B')
 		{
-			g_RestrictedSiteLetter = 0; // invalid bombsite specified
+			g_RestrictedSite = 0; // invalid bombsite specified
 		}
 		
 		g_RestrictedSiteLimit = kv.GetNum("ct_limit", 0);
@@ -78,7 +78,7 @@ public void OnConfigsExecuted()
 	delete kv;
 	
 	/* Players should not be spawned after the freeze time ends */
-	if (g_RestrictedSiteLetter)
+	if (g_RestrictedSite)
 	{
 		FindConVar("mp_join_grace_time").SetInt(0);
 	}
@@ -86,10 +86,9 @@ public void OnConfigsExecuted()
 
 public void OnClientConnected(int client)
 {
-	if (g_FirstMapConnection)
+	if (g_SiteA == -1 || g_SiteB == -1)
 	{
 		GetMapBombsites(g_SiteA, g_SiteB);
-		g_FirstMapConnection = false;
 	}
 }
 
@@ -102,7 +101,7 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if (g_RestrictedSiteLetter)
+	if (g_RestrictedSite)
 	{
 		g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
 	}
@@ -117,10 +116,10 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 
 		if (GetCounterTerroristsCount() < g_RestrictedSiteLimit)
 		{
-			AcceptEntityInput(g_RestrictedSiteLetter != 'A' ? g_SiteB : g_SiteA, "Disable");	
+			AcceptEntityInput(g_RestrictedSite != 'A' ? g_SiteB : g_SiteA, "Disable");	
 
-			PrintToChatAll("%t", "Bombsite Disabled Reason", g_RestrictedSiteLetter, g_RestrictedSiteLimit);
-			PrintCenterTextAll("%t", "Bombsite Disabled", g_RestrictedSiteLetter);
+			PrintToChatAll("%t", "Bombsite Disabled Reason", g_RestrictedSite, g_RestrictedSiteLimit);
+			PrintCenterTextAll("%t", "Bombsite Disabled", g_RestrictedSite);
 		}
 	}
 	
@@ -174,7 +173,8 @@ bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3])
 
 int GetCounterTerroristsCount()
 {
-	int num;
+	int num = 0;
+	
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT)
