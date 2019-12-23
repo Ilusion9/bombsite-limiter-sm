@@ -53,6 +53,7 @@ public void OnConfigsExecuted()
 	if (!kv.ImportFromFile(path))
 	{
 		LogError("The configuration file could not be read.");
+		delete kv;
 		return;
 	}
 	
