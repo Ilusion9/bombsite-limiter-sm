@@ -3,12 +3,6 @@
 	"Bombsite Disabled Reason"
 	{
 		"#format"		"{1:c},{2:d}"
-		"en"			"> Bombsite {1} is restricted due to fewer Counter-Terrorists than {2}"
-	}
-	
-	"Bombsite Disabled"
-	{
-		"#format"		"{1:c}"
-		"en"			"Bombsite {1} is restricted this round."
+		"en"			"> Bombsite {1} is restricted this round due to fewer CTs than {2}."
 	}
 }
