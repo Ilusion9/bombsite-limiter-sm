@@ -1,30 +1,40 @@
 #include <sourcemod>
-#include <sdktools> 
-#include <cstrike> 
+#include <sdktools>
+#include <cstrike>
 
-#pragma newdecls required 
+#pragma newdecls required
 
 public Plugin myinfo =
 {
-    name = "Bombsite Locker",
-    author = "Ilusion9",
-    description = "Disable bombsite A or B if there are fewer CTs than the accepted limit",
-    version = "2.1",
-    url = "https://github.com/Ilusion9/"
+	name = "Bombsite Locker",
+	author = "Ilusion9",
+	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
+	version = "3.0",
+	url = "https://github.com/Ilusion9/"
 };
+
+#define MAX_BOMBSITES	10
+enum struct SiteInfo
+{
+	int entityId;
+	int hammerId;
+	char letter;
+	int limit;
+}
 
 ConVar g_Cvar_FreezeTime;
 Handle g_Timer_FreezeEnd;
 
-int g_SiteA;
-int g_SiteB;
+SiteInfo g_Bombsites[MAX_BOMBSITES];
+int g_NumOfBombsites;
 
-char g_RestrictedSite;
-int g_RestrictedSiteLimit;
+bool g_IsChangingSettings[MAXPLAYERS + 1];
+int g_SelectedBombsite[MAXPLAYERS + 1];
 
 public void OnPluginStart()
 {
 	LoadTranslations("bombsitelocker.phrases");
+	RegAdminCmd("sm_bombsites", Command_Bombsites, ADMFLAG_RCON);
 	
 	HookEvent("round_start", Event_RoundStart);	
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
@@ -32,65 +42,115 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	g_RestrictedSiteLimit = 0;
-	g_RestrictedSite = 0; // null character
+	g_NumOfBombsites = 0;
+	int ent = -1;
 	
-	g_SiteA = -1;
-	g_SiteB = -1;
+	while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
+	{
+		g_Bombsites[g_NumOfBombsites].entityId = ent;
+		g_Bombsites[g_NumOfBombsites].hammerId = GetEntProp(ent, Prop_Data, "m_iHammerID");
+		g_Bombsites[g_NumOfBombsites].letter = 0;
+		g_Bombsites[g_NumOfBombsites].limit = 0;
+		
+		g_NumOfBombsites++;
+	}
+}
+
+public void OnConfigsExecuted()
+{
+	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
+	GetCurrentMap(map, sizeof(map));
+	
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker/%s.sites.cfg", map);
+	KeyValues kv = new KeyValues("Bombsites");
+	
+	if (!kv.ImportFromFile(path))
+	{
+		delete kv;
+		return;
+	}
+	
+	if (kv.GotoFirstSubKey(false))
+	{
+		do
+		{
+			char buffer[65];
+			kv.GetSectionName(buffer, sizeof(buffer));
+			int hammerId = StringToInt(buffer);
+			
+			for (int i = 0; i < g_NumOfBombsites; i++)
+			{
+				if (g_Bombsites[i].hammerId == hammerId)
+				{
+					char letter[3];
+					kv.GetString("letter", letter, sizeof(letter), "\n");
+					g_Bombsites[i].letter = letter[0];
+					g_Bombsites[i].limit = kv.GetNum("ct_limit", 0);
+					break;
+				}
+			}
+			
+		} while (kv.GotoNextKey(false));
+	}
+	
+	delete kv;
+	FindConVar("mp_join_grace_time").SetInt(0);
 }
 
 public void OnMapEnd()
 {
 	delete g_Timer_FreezeEnd;
-}
-
-public void OnConfigsExecuted()
-{
-	char path[PLATFORM_MAX_PATH];	
-	BuildPath(Path_SM, path, sizeof(path), "configs/bombsitelocker.cfg");
-	KeyValues kv = new KeyValues("BombsiteLocker"); 
 	
-	if (!kv.ImportFromFile(path))
+	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
+	GetCurrentMap(map, sizeof(map));
+	
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker");
+	if (!DirExists(path))
 	{
-		LogError("The configuration file could not be read.");
-		delete kv;
-		return;
+		CreateDirectory(path, 0777);
 	}
 	
-	char map[PLATFORM_MAX_PATH], displayName[PLATFORM_MAX_PATH];
-	GetCurrentMap(map, sizeof(map));
-	GetMapDisplayName(map, displayName, sizeof(displayName));
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker/%s.sites.cfg", map);
+	KeyValues kv = new KeyValues("Bombsites");
+	kv.ImportFromFile(path);
 	
-	if (kv.JumpToKey(displayName)) 
+	for (int i = 0; i < g_NumOfBombsites; i++)
 	{
-		char key[64];
+		char key[65];
+		Format(key, sizeof(key), "%d", g_Bombsites[i].hammerId);
 		
-		kv.GetString("site_locked", key, sizeof(key));
-		g_RestrictedSite = CharToUpper(key[0]);
-		
-		if (g_RestrictedSite != 'A' && g_RestrictedSite != 'B')
+		if (!g_Bombsites[i].letter || !g_Bombsites[i].limit)
 		{
-			g_RestrictedSite = 0; // invalid bombsite specified
+			if (kv.JumpToKey(key))
+			{
+				kv.DeleteThis();
+				kv.GoBack();
+			}
+			
+			continue;
 		}
 		
-		g_RestrictedSiteLimit = kv.GetNum("ct_limit", 0);
+		kv.JumpToKey(key, true);
+		char letter[3];
+		Format(letter, sizeof(letter), "%c", g_Bombsites[i].letter);
+		
+		kv.SetString("letter", letter);
+		kv.SetNum("ct_limit", g_Bombsites[i].limit);		
+		kv.GoBack();
 	}
 	
+	kv.ExportToFile(path);
 	delete kv;
-	
-	/* Players should not be spawned after the freeze time ends */
-	if (g_RestrictedSite)
-	{
-		FindConVar("mp_join_grace_time").SetInt(0);
-	}
 }
 
 public void OnClientConnected(int client)
 {
-	if (g_SiteA == -1 || g_SiteB == -1)
-	{
-		GetMapBombsites(g_SiteA, g_SiteB);
-	}
+	g_IsChangingSettings[client] = false;
+}
+
+public void OnClientDisconnect_Post(int client)
+{
+	g_IsChangingSettings[client] = false;
 }
 
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
@@ -102,74 +162,227 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if (g_RestrictedSite)
-	{
-		g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
-	}
+	g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
 }
 
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
-	if (g_SiteA != -1 && g_SiteB != -1)
+	int CTs = GetCounterTerroristsCount();
+	if (CTs > 0)
 	{
-		AcceptEntityInput(g_SiteA, "Enable");
-		AcceptEntityInput(g_SiteB, "Enable");
-
-		if (GetCounterTerroristsCount() < g_RestrictedSiteLimit)
+		for (int i = 0; i < g_NumOfBombsites; i++)
 		{
-			AcceptEntityInput(g_RestrictedSite != 'A' ? g_SiteB : g_SiteA, "Disable");	
-
-			PrintToChatAll("%t", "Bombsite Disabled Reason", g_RestrictedSite, g_RestrictedSiteLimit);
-			PrintCenterTextAll("%t", "Bombsite Disabled", g_RestrictedSite);
+			AcceptEntityInput(g_Bombsites[i].entityId, "Enable");
+			
+			if (!g_Bombsites[i].limit || !g_Bombsites[i].letter)
+			{
+				continue;
+			}
+			
+			if (CTs < g_Bombsites[i].limit)
+			{
+				AcceptEntityInput(g_Bombsites[i].entityId, "Disable");
+				PrintToChatAll("%t", "Bombsite Disabled Reason", g_Bombsites[i].letter, g_Bombsites[i].limit);
+			}
 		}
 	}
 	
 	g_Timer_FreezeEnd = null;
 }
 
-/* Original code from: https://forums.alliedmods.net/showthread.php?t=136912 */
-void GetMapBombsites(int &siteA, int &siteB)
+public Action Command_Bombsites(int client, int args)
 {
-	int ent = FindEntityByClassname(-1, "cs_player_manager");
-	if (ent != -1)
+	if (!client)
 	{
-		/* Get bombsites coordinates from players radar */
-		float bombsiteCenterA[3], bombsiteCenterB[3];
-		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", bombsiteCenterA); 
-		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", bombsiteCenterB);
-		
-		/* Find which site is A and which is B by checking those coordinates */
-		ent = -1;
-		while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
-		{
-			float vecMins[3], vecMaxs[3];
-			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
-			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
-			
-			if (IsVecBetween(bombsiteCenterA, vecMins, vecMaxs))
-			{
-				siteA = ent; 
-			}
-			
-			else if (IsVecBetween(bombsiteCenterB, vecMins, vecMaxs))
-			{
-				siteB = ent;
-			}
-		}
+		return Plugin_Handled;
 	}
+	
+	if (!g_NumOfBombsites)
+	{
+		ReplyToCommand(client, "[SM] This map has no bomb sites!");
+		return Plugin_Handled;
+	}
+	
+	ShowBombSitesMenu(client);
+	return Plugin_Handled;
 }
 
-bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
+void ShowBombSitesMenu(int client)
 {
-	for (int i = 0; i < 3; i++)
+	Menu menu = new Menu(Menu_BombSitesHandler);
+	menu.SetTitle("Bombsite Locker");
+
+	for (int i = 0; i < g_NumOfBombsites; i++)
 	{
-		if (vec[i] < mins[i] || vec[i] > maxs[i])
+		char buffer[65];
+		Format(buffer, sizeof(buffer), "Bombsite %d", i + 1);
+		menu.AddItem("", buffer);
+	}
+	
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int Menu_BombSitesHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+	
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+	
+	g_SelectedBombsite[param1] = param2;
+	ShowOptionsMenu(param1);
+	
+	return 0;
+}
+
+void ShowOptionsMenu(int client)
+{
+	int option = g_SelectedBombsite[client];
+	Menu menu = new Menu(Menu_OptionsHandler);
+	
+	menu.SetTitle("Bombsite %d", option + 1);
+	menu.AddItem("", "Teleport to");
+
+	char buffer[65];
+	if (g_Bombsites[option].limit && g_Bombsites[option].letter)
+	{
+		Format(buffer, sizeof(buffer), "Change settings [%c - %d]", g_Bombsites[option].letter, g_Bombsites[option].limit);
+	}
+	else
+	{
+		Format(buffer, sizeof(buffer), "Create settings");
+	}
+	menu.AddItem("", buffer);
+	
+	if (g_Bombsites[option].limit && g_Bombsites[option].letter)
+	{
+		menu.AddItem("", "Remove settings");
+	}
+	
+	menu.ExitBackButton = true;
+	menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+		return 0;
+	}
+	
+	if (action == MenuAction_Cancel)
+	{
+		if (g_IsChangingSettings[param1])
 		{
-			return false;
+			PrintToChat(param1, "[SM] The action to change this bombsite settings was canceled!");
+			g_IsChangingSettings[param1] = false;
+		}
+		
+		if (param2 == MenuCancel_ExitBack)
+		{
+			ShowBombSitesMenu(param1);
 		}
 	}
 	
-	return true;
+	if (action != MenuAction_Select)
+	{
+		return 0;
+	}
+	
+	switch (param2)
+	{
+		case 0:
+		{
+			int option = g_SelectedBombsite[param1];
+			int ent = g_Bombsites[option].entityId;
+			
+			float origin[3], vecMins[3], vecMaxs[3];
+			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
+			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
+			
+			GetMiddleOfABox(vecMins, vecMaxs, origin);
+			TeleportEntity(param1, origin, NULL_VECTOR, NULL_VECTOR);
+			
+			ShowOptionsMenu(param1);
+		}
+		
+		case 1:
+		{
+			g_IsChangingSettings[param1] = true;
+			PrintToChat(param1, "[SM] Type in chat the letter and the CT limit for this bombsite! Example: 'B 5'");
+			PrintToChat(param1, "[SM] Type 'cancel' to abort this action!");
+			ShowOptionsMenu(param1);
+		}
+		
+		case 2:
+		{
+			if (g_IsChangingSettings[param1])
+			{
+				PrintToChat(param1, "[SM] The action to change this bombsite settings was canceled!");
+				g_IsChangingSettings[param1] = false;
+			}
+
+			int option = g_SelectedBombsite[param1];
+			g_Bombsites[option].letter = 0;
+			g_Bombsites[option].limit = 0;
+			ShowOptionsMenu(param1);
+		}
+	}
+	
+	return 0;
+}
+
+public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+{
+	if (g_IsChangingSettings[client])
+	{
+		if (StrEqual(sArgs, "cancel", false))
+		{
+			g_IsChangingSettings[client] = false;
+			PrintToChat(client, "[SM] The action to change this bombsite settings was canceled!");
+			return Plugin_Handled;
+		}
+		
+		char letter = sArgs[0];
+		int index = g_SelectedBombsite[client];
+		
+		if (letter < 'A' || letter > 'Z')
+		{
+			PrintToChat(client, "[SM] The letter must be between 'A' and 'Z'. Please type again!");
+			PrintToChat(client, "[SM] Type 'cancel' to abort this action!");
+			return Plugin_Handled;
+		}
+		
+		char buffer[65];
+		Format(buffer, sizeof(buffer), "%s", sArgs);
+		ReplaceString(buffer, sizeof(buffer), " ", "");
+		
+		int limit;
+		if (!StringToIntEx(sArgs[1], limit) || limit < 1)
+		{
+			PrintToChat(client, "[SM] Invalid limit of CTs specified!");
+			PrintToChat(client, "[SM] Type 'cancel' to abort this action!");
+			return Plugin_Handled;
+		}
+		
+		g_IsChangingSettings[client] = false;
+		g_Bombsites[index].letter = letter;
+		g_Bombsites[index].limit = limit;
+
+		PrintToChat(client, "[SM] The bombsite settings were changed! (%c - %d)", letter, limit);
+		
+		ShowOptionsMenu(client);
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
 }
 
 int GetCounterTerroristsCount()
@@ -190,4 +403,15 @@ int GetCounterTerroristsCount()
 bool IsWarmupPeriod()
 {
 	return view_as<bool>(GameRules_GetProp("m_bWarmupPeriod"));
+}
+
+/* From devzones plugin */
+void GetMiddleOfABox(const float vec1[3], const float vec2[3], float buffer[3])
+{
+	float mid[3];
+	MakeVectorFromPoints(vec1, vec2, mid);
+	mid[0] = mid[0] / 2.0;
+	mid[1] = mid[1] / 2.0;
+	mid[2] = mid[2] / 2.0;
+	AddVectors(vec1, mid, buffer);
 }
