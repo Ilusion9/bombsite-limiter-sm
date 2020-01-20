@@ -8,7 +8,7 @@ public Plugin myinfo =
 {
 	name = "Bombsite Locker",
 	author = "Ilusion9",
-	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
+	description = "Disable specified bomb sites if there are fewer CTs than their accepted limit",
 	version = "3.0",
 	url = "https://github.com/Ilusion9/"
 };
@@ -16,24 +16,26 @@ public Plugin myinfo =
 #define MAX_BOMBSITES	10
 enum struct SiteInfo
 {
-	int entityId;
-	int hammerId;
-	char letter;
-	int limit;
+	int EntityId;
+	int HammerId;
+	char Letter;
+	int LimitCT;
 }
 
 ConVar g_Cvar_FreezeTime;
 Handle g_Timer_FreezeEnd;
 
-SiteInfo g_Bombsites[MAX_BOMBSITES];
-int g_NumOfBombsites;
+SiteInfo g_BombSites[MAX_BOMBSITES];
+int g_NumOfBombSites;
 
 bool g_IsChangingSettings[MAXPLAYERS + 1];
-int g_SelectedBombsite[MAXPLAYERS + 1];
+int g_SelectedBombSite[MAXPLAYERS + 1];
 
 public void OnPluginStart()
 {
+	LoadTranslations("common.phrases");
 	LoadTranslations("bombsitelocker.phrases");
+	
 	RegAdminCmd("sm_bombsites", Command_Bombsites, ADMFLAG_RCON);
 	
 	HookEvent("round_start", Event_RoundStart);	
@@ -42,17 +44,16 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-	g_NumOfBombsites = 0;
-	int ent = -1;
+	g_NumOfBombSites = 0;
+	int entity = -1;
 	
-	while ((ent = FindEntityByClassname(ent, "func_bomb_target")) != -1)
+	while ((entity = FindEntityByClassname(entity, "func_bomb_target")) != -1)
 	{
-		g_Bombsites[g_NumOfBombsites].entityId = ent;
-		g_Bombsites[g_NumOfBombsites].hammerId = GetEntProp(ent, Prop_Data, "m_iHammerID");
-		g_Bombsites[g_NumOfBombsites].letter = 0;
-		g_Bombsites[g_NumOfBombsites].limit = 0;
-		
-		g_NumOfBombsites++;
+		g_BombSites[g_NumOfBombSites].EntityId = entity;
+		g_BombSites[g_NumOfBombSites].HammerId = GetEntityHammerId(entity);
+		g_BombSites[g_NumOfBombSites].Letter = 0;
+		g_BombSites[g_NumOfBombSites].LimitCT = 0;
+		g_NumOfBombSites++;
 	}
 }
 
@@ -64,37 +65,34 @@ public void OnConfigsExecuted()
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker/%s.sites.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
 	
-	if (!kv.ImportFromFile(path))
+	if (kv.ImportFromFile(path))
 	{
-		delete kv;
-		return;
-	}
-	
-	if (kv.GotoFirstSubKey(false))
-	{
-		do
+		if (kv.GotoFirstSubKey(false))
 		{
-			char buffer[65];
-			kv.GetSectionName(buffer, sizeof(buffer));
-			int hammerId = StringToInt(buffer);
-			
-			for (int i = 0; i < g_NumOfBombsites; i++)
+			do
 			{
-				if (g_Bombsites[i].hammerId == hammerId)
+				char section[65];
+				kv.GetSectionName(section, sizeof(section));
+				int hammerId = StringToInt(section);
+				
+				for (int i = 0; i < g_NumOfBombSites; i++)
 				{
-					char letter[3];
-					kv.GetString("letter", letter, sizeof(letter), "\n");
-					g_Bombsites[i].letter = letter[0];
-					g_Bombsites[i].limit = kv.GetNum("ct_limit", 0);
-					break;
+					if (g_BombSites[i].HammerId == hammerId)
+					{
+						char letter[3];
+						kv.GetString("letter", letter, sizeof(letter), "\n");
+						g_BombSites[i].Letter = letter[0];
+						g_BombSites[i].LimitCT = kv.GetNum("ct_limit", 0);
+						break;
+					}
 				}
-			}
-			
-		} while (kv.GotoNextKey(false));
+				
+			} while (kv.GotoNextKey(false));
+		}
 	}
 	
 	delete kv;
-	FindConVar("mp_join_grace_time").SetInt(0);
+	SetConVar("mp_join_grace_time", "0");
 }
 
 public void OnMapEnd()
@@ -114,12 +112,12 @@ public void OnMapEnd()
 	KeyValues kv = new KeyValues("Bombsites");
 	kv.ImportFromFile(path);
 	
-	for (int i = 0; i < g_NumOfBombsites; i++)
+	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
 		char key[65];
-		Format(key, sizeof(key), "%d", g_Bombsites[i].hammerId);
+		Format(key, sizeof(key), "%d", g_BombSites[i].HammerId);
 		
-		if (!g_Bombsites[i].letter || !g_Bombsites[i].limit)
+		if (!g_BombSites[i].Letter || !g_BombSites[i].LimitCT)
 		{
 			if (kv.JumpToKey(key))
 			{
@@ -132,10 +130,10 @@ public void OnMapEnd()
 		
 		kv.JumpToKey(key, true);
 		char letter[3];
-		Format(letter, sizeof(letter), "%c", g_Bombsites[i].letter);
+		Format(letter, sizeof(letter), "%c", g_BombSites[i].Letter);
 		
 		kv.SetString("letter", letter);
-		kv.SetNum("ct_limit", g_Bombsites[i].limit);		
+		kv.SetNum("ct_limit", g_BombSites[i].LimitCT);		
 		kv.GoBack();
 	}
 	
@@ -167,22 +165,22 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
-	int CTs = GetCounterTerroristsCount();
-	if (CTs > 0)
+	int numOfCTs = GetCounterTerroristsCount();
+	if (numOfCTs)
 	{
-		for (int i = 0; i < g_NumOfBombsites; i++)
+		for (int i = 0; i < g_NumOfBombSites; i++)
 		{
-			AcceptEntityInput(g_Bombsites[i].entityId, "Enable");
+			AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
 			
-			if (!g_Bombsites[i].limit || !g_Bombsites[i].letter)
+			if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
 			{
 				continue;
 			}
 			
-			if (CTs < g_Bombsites[i].limit)
+			if (numOfCTs < g_BombSites[i].LimitCT)
 			{
-				AcceptEntityInput(g_Bombsites[i].entityId, "Disable");
-				PrintToChatAll("%t", "Bombsite Disabled Reason", g_Bombsites[i].letter, g_Bombsites[i].limit);
+				AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
+				PrintToChatAll("%t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
 			}
 		}
 	}
@@ -194,12 +192,13 @@ public Action Command_Bombsites(int client, int args)
 {
 	if (!client)
 	{
+		ReplyToCommand(client, "[SM] %t", "Command is in-game only");
 		return Plugin_Handled;
 	}
 	
-	if (!g_NumOfBombsites)
+	if (!g_NumOfBombSites)
 	{
-		ReplyToCommand(client, "[SM] This map has no bomb sites!");
+		ReplyToCommand(client, "[SM] %t", "Map Without Bombsites");
 		return Plugin_Handled;
 	}
 	
@@ -210,12 +209,12 @@ public Action Command_Bombsites(int client, int args)
 void ShowBombSitesMenu(int client)
 {
 	Menu menu = new Menu(Menu_BombSitesHandler);
-	menu.SetTitle("Bombsite Locker");
-
-	for (int i = 0; i < g_NumOfBombsites; i++)
+	menu.SetTitle("%T", "Bombsites", client);
+	
+	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
 		char buffer[65];
-		Format(buffer, sizeof(buffer), "Bombsite %d", i + 1);
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Number", client, i + 1);
 		menu.AddItem("", buffer);
 	}
 	
@@ -224,45 +223,45 @@ void ShowBombSitesMenu(int client)
 
 public int Menu_BombSitesHandler(Menu menu, MenuAction action, int param1, int param2)
 {
-	if (action == MenuAction_End)
+	switch (action)
 	{
-		delete menu;
-		return 0;
+		case MenuAction_End:
+		{
+			delete menu;
+		}
+		
+		case MenuAction_Select:
+		{
+			g_SelectedBombSite[param1] = param2;
+			ShowOptionsMenu(param1);
+		}
 	}
-	
-	if (action != MenuAction_Select)
-	{
-		return 0;
-	}
-	
-	g_SelectedBombsite[param1] = param2;
-	ShowOptionsMenu(param1);
-	
-	return 0;
 }
 
 void ShowOptionsMenu(int client)
 {
-	int option = g_SelectedBombsite[client];
+	char buffer[65];
+	int option = g_SelectedBombSite[client];
 	Menu menu = new Menu(Menu_OptionsHandler);
 	
-	menu.SetTitle("Bombsite %d", option + 1);
-	menu.AddItem("", "Teleport to");
-
-	char buffer[65];
-	if (g_Bombsites[option].limit && g_Bombsites[option].letter)
+	menu.SetTitle("%T", "Bombsite Number", client, option + 1);
+	Format(buffer, sizeof(buffer), "%T", "Teleport To Bombsite", client);
+	menu.AddItem("", buffer);
+	
+	if (g_BombSites[option].LimitCT && g_BombSites[option].Letter)
 	{
-		Format(buffer, sizeof(buffer), "Change settings [%c - %d]", g_Bombsites[option].letter, g_Bombsites[option].limit);
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Change Settings", client, g_BombSites[option].Letter, g_BombSites[option].LimitCT);
 	}
 	else
 	{
-		Format(buffer, sizeof(buffer), "Create settings");
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Create Settings", client);
 	}
 	menu.AddItem("", buffer);
 	
-	if (g_Bombsites[option].limit && g_Bombsites[option].letter)
+	if (g_BombSites[option].LimitCT && g_BombSites[option].Letter)
 	{
-		menu.AddItem("", "Remove settings");
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Remove Settings", client);
+		menu.AddItem("", buffer);
 	}
 	
 	menu.ExitBackButton = true;
@@ -271,118 +270,137 @@ void ShowOptionsMenu(int client)
 
 public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int param2)
 {
-	if (action == MenuAction_End)
+	switch (action)
 	{
-		delete menu;
-		return 0;
-	}
-	
-	if (action == MenuAction_Cancel)
-	{
-		if (g_IsChangingSettings[param1])
+		case MenuAction_End:
 		{
-			PrintToChat(param1, "[SM] The action to change this bombsite settings was canceled!");
-			g_IsChangingSettings[param1] = false;
+			delete menu;
 		}
 		
-		if (param2 == MenuCancel_ExitBack)
-		{
-			ShowBombSitesMenu(param1);
-		}
-	}
-	
-	if (action != MenuAction_Select)
-	{
-		return 0;
-	}
-	
-	switch (param2)
-	{
-		case 0:
-		{
-			int option = g_SelectedBombsite[param1];
-			int ent = g_Bombsites[option].entityId;
-			
-			float origin[3], vecMins[3], vecMaxs[3];
-			GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
-			GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
-			
-			GetMiddleOfABox(vecMins, vecMaxs, origin);
-			TeleportEntity(param1, origin, NULL_VECTOR, NULL_VECTOR);
-			
-			ShowOptionsMenu(param1);
-		}
-		
-		case 1:
-		{
-			g_IsChangingSettings[param1] = true;
-			PrintToChat(param1, "[SM] Type in chat the letter and the CT limit for this bombsite! Example: 'B 5'");
-			PrintToChat(param1, "[SM] Type 'cancel' to abort this action!");
-			ShowOptionsMenu(param1);
-		}
-		
-		case 2:
+		case MenuAction_Cancel:
 		{
 			if (g_IsChangingSettings[param1])
 			{
-				PrintToChat(param1, "[SM] The action to change this bombsite settings was canceled!");
+				PrintToChat(param1, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[param1] + 1);
 				g_IsChangingSettings[param1] = false;
 			}
+			
+			if (param2 == MenuCancel_ExitBack)
+			{
+				ShowBombSitesMenu(param1);
+			}
+		}
+		
+		case MenuAction_Select:
+		{
+			switch (param2)
+			{
+				case 0:
+				{
+					int option = g_SelectedBombSite[param1];
+					int ent = g_BombSites[option].EntityId;
+					
+					float origin[3], vecMins[3], vecMaxs[3];
+					GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
+					GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
+					
+					GetMiddleOfABox(vecMins, vecMaxs, origin);
+					TeleportEntity(param1, origin, NULL_VECTOR, NULL_VECTOR);
+					
+					PrintToChat(param1, "[SM] %t", "Teleported To Bombsite", g_SelectedBombSite[param1] + 1);
+					ShowOptionsMenu(param1);
+				}
+				
+				case 1:
+				{
+					g_IsChangingSettings[param1] = true;
+					PrintToChat(param1, "[SM] %t", "Type Bombsite Settings");
+					PrintToChat(param1, "[SM] %t", "Bombsite Abort Action");
+					ShowOptionsMenu(param1);
+				}
+				
+				case 2:
+				{
+					if (g_IsChangingSettings[param1])
+					{
+						PrintToChat(param1, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[param1] + 1);
+						g_IsChangingSettings[param1] = false;
+					}
 
-			int option = g_SelectedBombsite[param1];
-			g_Bombsites[option].letter = 0;
-			g_Bombsites[option].limit = 0;
-			ShowOptionsMenu(param1);
+					int option = g_SelectedBombSite[param1];
+					g_BombSites[option].Letter = 0;
+					g_BombSites[option].LimitCT = 0;
+					
+					PrintToChat(param1, "[SM] %t", "Bombsite Settings Removed");
+					ShowOptionsMenu(param1);
+				}
+			}
 		}
 	}
-	
-	return 0;
 }
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if (g_IsChangingSettings[client])
+	if (!g_IsChangingSettings[client])
 	{
-		if (StrEqual(sArgs, "cancel", false))
-		{
-			g_IsChangingSettings[client] = false;
-			PrintToChat(client, "[SM] The action to change this bombsite settings was canceled!");
-			return Plugin_Handled;
-		}
-		
-		char letter = sArgs[0];
-		int index = g_SelectedBombsite[client];
-		
-		if (letter < 'A' || letter > 'Z')
-		{
-			PrintToChat(client, "[SM] The letter must be between 'A' and 'Z'. Please type again!");
-			PrintToChat(client, "[SM] Type 'cancel' to abort this action!");
-			return Plugin_Handled;
-		}
-		
-		char buffer[65];
-		Format(buffer, sizeof(buffer), "%s", sArgs);
-		ReplaceString(buffer, sizeof(buffer), " ", "");
-		
-		int limit;
-		if (!StringToIntEx(sArgs[1], limit) || limit < 1)
-		{
-			PrintToChat(client, "[SM] Invalid limit of CTs specified!");
-			PrintToChat(client, "[SM] Type 'cancel' to abort this action!");
-			return Plugin_Handled;
-		}
-		
+		return Plugin_Continue;
+	}
+	
+	if (StrEqual(sArgs, "cancel", false))
+	{
 		g_IsChangingSettings[client] = false;
-		g_Bombsites[index].letter = letter;
-		g_Bombsites[index].limit = limit;
-
-		PrintToChat(client, "[SM] The bombsite settings were changed! (%c - %d)", letter, limit);
-		
-		ShowOptionsMenu(client);
+		PrintToChat(client, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[client] + 1);
 		return Plugin_Handled;
 	}
 	
-	return Plugin_Continue;
+	char letter = sArgs[0];
+	int option = g_SelectedBombSite[client];
+	
+	if (!IsCharAlpha(letter))
+	{
+		PrintToChat(client, "[SM] %t", "Bombsite Invalid Letter");
+		PrintToChat(client, "[SM] %t", "Bombsite Abort Action");
+		return Plugin_Handled;
+	}
+	
+	char buffer[65];
+	Format(buffer, sizeof(buffer), "%s", sArgs);
+	ReplaceString(buffer, sizeof(buffer), " ", "");
+	
+	int limit;
+	if (!StringToIntEx(sArgs[1], limit) || limit < 1)
+	{
+		PrintToChat(client, "[SM] %t", "Bombsite Invalid Limit");
+		PrintToChat(client, "[SM] %t", "Bombsite Abort Action");
+		return Plugin_Handled;
+	}
+	
+	g_IsChangingSettings[client] = false;
+	g_BombSites[option].Letter = letter;
+	g_BombSites[option].LimitCT = limit;
+
+	PrintToChat(client, "[SM] %t", "Bombsite Settings Changed", letter, limit);
+	ShowOptionsMenu(client);
+	return Plugin_Handled;
+}
+
+int GetEntityHammerId(int entity)
+{
+	return GetEntProp(entity, Prop_Data, "m_iHammerID");
+}
+
+bool IsWarmupPeriod()
+{
+	return view_as<bool>(GameRules_GetProp("m_bWarmupPeriod"));
+}
+
+void SetConVar(const char[] name, const char[] value)
+{
+	ConVar cvar = FindConVar(name);
+	if (cvar)
+	{
+		cvar.SetString(value);
+	}
 }
 
 int GetCounterTerroristsCount()
@@ -398,11 +416,6 @@ int GetCounterTerroristsCount()
 	}
 
 	return num;
-}
-
-bool IsWarmupPeriod()
-{
-	return view_as<bool>(GameRules_GetProp("m_bWarmupPeriod"));
 }
 
 /* From devzones plugin */
