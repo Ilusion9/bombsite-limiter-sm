@@ -5,4 +5,84 @@
 		"#format"		"{1:c},{2:d}"
 		"en"			"> Bombsite {1} is restricted this round due to fewer CTs than {2}."
 	}
+	
+	"Map Without Bombsites"
+	{
+		"en"			"This map has no bomb sites."
+	}
+	
+	"Bombsites"
+	{
+		"en"			"Bombsites"
+	}
+	
+	"Bombsite Number"
+	{
+		"#format"		"{1:d}"
+		"en"			"Bombsite {1}"
+	}
+	
+	"Teleport To Bombsite"
+	{
+		"en"			"Teleport to"
+	}
+	
+	"Bombsite Change Settings"
+	{
+		"#format"		"{1:c},{2:d}"
+		"en"			"Change bombsite limit [{1} - {2} CTs]"
+	}
+	
+	"Bombsite Create Settings"
+	{
+		"en"			"Set bombsite limit"
+	}
+	
+	"Bombsite Remove Settings"
+	{
+		"en"			"Remove bombsite limit"
+	}
+	
+	"Bombsite Action Canceled"
+	{
+		"#format"		"{1:d}"
+		"en"			"The action to set bombsite {1} limit was canceled."
+	}
+
+	"Teleported To Bombsite"
+	{
+		"#format"		"{1:d}"
+		"en"			"You have been teleported to bombsite {1}."
+	}
+	
+	"Type Bombsite Settings"
+	{
+		"en"			"Type in chat the letter and the limit for this bombsite."
+	}
+	
+	"Bombsite Abort Action"
+	{
+		"en"			"Type 'cancel' to abort this action."
+	}
+
+	"Bombsite Settings Removed"
+	{
+		"en"			"The bombsite limit has been removed."
+	}
+	
+	"Bombsite Invalid Letter"
+	{
+		"en"			"The letter must be between 'A' and 'Z'. Please type again!"
+	}
+	
+	"Bombsite Invalid Limit"
+	{
+		"en"			"Invalid limit of CTs specified. Please type again!"
+	}
+	
+	"Bombsite Settings Changed"
+	{
+		"#format"		"{1:c},{2:d}"
+		"en"			"The bombsite limit has been changed ({1} - {2} CTs)."
+	}
 }
