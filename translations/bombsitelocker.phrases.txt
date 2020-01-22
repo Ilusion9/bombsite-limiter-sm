@@ -3,12 +3,12 @@
 	"Bombsite Disabled Reason"
 	{
 		"#format"		"{1:c},{2:d}"
-		"en"			"> Bombsite {1} is restricted this round due to fewer CTs than {2}."
+		"en"			"{green}Bombsite {1}{default} is restricted this round due to fewer {blue}CTs{default} than {orange}{2}{default}."
 	}
 	
 	"Map Without Bombsites"
 	{
-		"en"			"This map has no bomb sites."
+		"en"			"This map has no bombsites."
 	}
 	
 	"Bombsites"
@@ -27,62 +27,93 @@
 		"en"			"Teleport to"
 	}
 	
-	"Bombsite Change Settings"
-	{
-		"#format"		"{1:c},{2:d}"
-		"en"			"Change bombsite limit [{1} - {2} CTs]"
-	}
-	
-	"Bombsite Create Settings"
-	{
-		"en"			"Set bombsite limit"
-	}
-	
-	"Bombsite Remove Settings"
-	{
-		"en"			"Remove bombsite limit"
-	}
-	
-	"Bombsite Action Canceled"
-	{
-		"#format"		"{1:d}"
-		"en"			"The action to set bombsite {1} limit was canceled."
-	}
-
 	"Teleported To Bombsite"
 	{
 		"#format"		"{1:d}"
-		"en"			"You have been teleported to bombsite {1}."
+		"en"			"You have been teleported to {green}Bombsite {1}{default}."
 	}
 	
-	"Type Bombsite Settings"
+	"Bombsite Set Letter"
 	{
-		"en"			"Type in chat the letter and the limit for this bombsite."
+		"en"			"Set letter"
 	}
 	
-	"Bombsite Abort Action"
+	"Bombsite Change Letter"
 	{
-		"en"			"Type 'cancel' to abort this action."
+		"#format"		"{1:c}"
+		"en"			"Change letter [{1}]"
 	}
-
-	"Bombsite Settings Removed"
+	
+	"Type Bombsite Letter"
 	{
-		"en"			"The bombsite limit has been removed."
+		"#format"		"{1:d}"
+		"en"			"Type in chat the letter of {green}Bombsite {1}{default}."
 	}
 	
 	"Bombsite Invalid Letter"
 	{
-		"en"			"The letter must be between 'A' and 'Z'. Please type again!"
+		"en"			"The letter must be between {orange}'A'{default} and {orange}'Z'{default}. Please type again!"
+	}
+	
+	"Action Changing Letter Canceled"
+	{
+		"#format"		"{1:d}"
+		"en"			"The action to change the letter of {green}Bombsite {1}{default} has been canceled."
+	}
+	
+	"Bombsite Letter Changed"
+	{
+		"#format"		"{1:d}"
+		"en"			"The letter of {green}Bombsite {1}{default} has been changed."
+	}
+	
+	"Bombsite Set Limit"
+	{
+		"en"			"Set limit of CTs"
+	}
+	
+	"Bombsite Change Limit"
+	{
+		"#format"		"{1:d}"
+		"en"			"Change limit of CTs [{1}]"
+	}
+	
+	"Type Bombsite Limit"
+	{
+		"#format"		"{1:d}"
+		"en"			"Type in chat the limit of {blue}CTs{default} for {green}Bombsite {1}{default}."
 	}
 	
 	"Bombsite Invalid Limit"
 	{
-		"en"			"Invalid limit of CTs specified. Please type again!"
+		"en"			"Invalid limit of {blue}CTs{default} specified. Please type again!"
 	}
 	
-	"Bombsite Settings Changed"
+	"Bombsite Limit Changed"
 	{
-		"#format"		"{1:c},{2:d}"
-		"en"			"The bombsite limit has been changed ({1} - {2} CTs)."
+		"#format"		"{1:d}"
+		"en"			"The limit of {blue}CTs{default} for {green}Bombsite {1}{default} has been changed."
+	}
+	
+	"Action Changing Limit Canceled"
+	{
+		"#format"		"{1:d}"
+		"en"			"The action to change the limit of {blue}CTs{default} for {green}Bombsite {1}{default} has been canceled."
+	}
+	
+	"Bombsite Remove Settings"
+	{
+		"en"			"Remove settings"
+	}
+
+	"Bombsite Settings Removed"
+	{
+		"#format"		"{1:d}"
+		"en"			"The settings of {green}Bombsite {1}{default} have been removed."
+	}
+	
+	"Abort Action"
+	{
+		"en"			"Type {red}'cancel'{default} to abort this action."
 	}
 }
