@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
+#include <colorlib>
 
 #pragma newdecls required
 
@@ -8,7 +9,7 @@ public Plugin myinfo =
 {
 	name = "Bombsite Locker",
 	author = "Ilusion9",
-	description = "Disable specified bomb sites if there are fewer CTs than their accepted limit",
+	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
 	version = "3.0",
 	url = "https://github.com/Ilusion9/"
 };
@@ -22,13 +23,20 @@ enum struct SiteInfo
 	int LimitCT;
 }
 
+enum ChangeState
+{
+	Not_Changing,
+	Changing_Letter,
+	Changing_Limit
+}
+
 ConVar g_Cvar_FreezeTime;
 Handle g_Timer_FreezeEnd;
 
 SiteInfo g_BombSites[MAX_BOMBSITES];
 int g_NumOfBombSites;
 
-bool g_IsChangingSettings[MAXPLAYERS + 1];
+ChangeState g_ChangingSettings[MAXPLAYERS + 1];
 int g_SelectedBombSite[MAXPLAYERS + 1];
 
 public void OnPluginStart()
@@ -81,8 +89,24 @@ public void OnConfigsExecuted()
 					{
 						char letter[3];
 						kv.GetString("letter", letter, sizeof(letter), "\n");
-						g_BombSites[i].Letter = letter[0];
+						g_BombSites[i].Letter = CharToUpper(letter[0]);
+						
+						if (!IsCharAlpha(g_BombSites[i].Letter))
+						{
+							g_BombSites[i].Letter = 0;
+							g_BombSites[i].LimitCT = 0;
+							LogError("Invalid letter specified for section \"%d\" (map: \"%s\")", hammerId, map);
+							break;
+						}
+						
 						g_BombSites[i].LimitCT = kv.GetNum("ct_limit", 0);
+						if (g_BombSites[i].LimitCT < 1)
+						{
+							g_BombSites[i].Letter = 0;
+							g_BombSites[i].LimitCT = 0;
+							LogError("Invalid limit of CTs specified for section \"%d\" (map: \"%s\")", hammerId, map);
+						}
+						
 						break;
 					}
 				}
@@ -143,12 +167,12 @@ public void OnMapEnd()
 
 public void OnClientConnected(int client)
 {
-	g_IsChangingSettings[client] = false;
+	g_ChangingSettings[client] = Not_Changing;
 }
 
 public void OnClientDisconnect_Post(int client)
 {
-	g_IsChangingSettings[client] = false;
+	g_ChangingSettings[client] = Not_Changing;
 }
 
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
@@ -166,22 +190,19 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
 	int numOfCTs = GetCounterTerroristsCount();
-	if (numOfCTs)
+	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
-		for (int i = 0; i < g_NumOfBombSites; i++)
+		AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
+		
+		if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
 		{
-			AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
-			
-			if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
-			{
-				continue;
-			}
-			
-			if (numOfCTs < g_BombSites[i].LimitCT)
-			{
-				AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
-				PrintToChatAll("%t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
-			}
+			continue;
+		}
+		
+		if (numOfCTs < g_BombSites[i].LimitCT)
+		{
+			AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
+			CPrintToChatAll("> %t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
 		}
 	}
 	
@@ -248,21 +269,28 @@ void ShowOptionsMenu(int client)
 	Format(buffer, sizeof(buffer), "%T", "Teleport To Bombsite", client);
 	menu.AddItem("", buffer);
 	
-	if (g_BombSites[option].LimitCT && g_BombSites[option].Letter)
+	if (g_BombSites[option].Letter)
 	{
-		Format(buffer, sizeof(buffer), "%T", "Bombsite Change Settings", client, g_BombSites[option].Letter, g_BombSites[option].LimitCT);
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Change Letter", client, g_BombSites[option].Letter);
 	}
 	else
 	{
-		Format(buffer, sizeof(buffer), "%T", "Bombsite Create Settings", client);
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Set Letter", client);
 	}
 	menu.AddItem("", buffer);
 	
-	if (g_BombSites[option].LimitCT && g_BombSites[option].Letter)
+	if (g_BombSites[option].LimitCT)
 	{
-		Format(buffer, sizeof(buffer), "%T", "Bombsite Remove Settings", client);
-		menu.AddItem("", buffer);
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Change Limit", client, g_BombSites[option].LimitCT);
 	}
+	else
+	{
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Set Limit", client);
+	}
+	menu.AddItem("", buffer, g_BombSites[option].Letter ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	
+	Format(buffer, sizeof(buffer), "%T", "Bombsite Remove Settings", client);
+	menu.AddItem("", buffer, g_BombSites[option].LimitCT && g_BombSites[option].Letter ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	
 	menu.ExitBackButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
@@ -279,10 +307,16 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 		
 		case MenuAction_Cancel:
 		{
-			if (g_IsChangingSettings[param1])
+			if (g_ChangingSettings[param1] == Changing_Letter)
 			{
-				PrintToChat(param1, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[param1] + 1);
-				g_IsChangingSettings[param1] = false;
+				CPrintToChat(param1, "[SM] %t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
+				g_ChangingSettings[param1] = Not_Changing;
+			}
+			
+			else if (g_ChangingSettings[param1] == Changing_Limit)
+			{
+				CPrintToChat(param1, "[SM] %t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
+				g_ChangingSettings[param1] = Not_Changing;
 			}
 			
 			if (param2 == MenuCancel_ExitBack)
@@ -307,31 +341,55 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					GetMiddleOfABox(vecMins, vecMaxs, origin);
 					TeleportEntity(param1, origin, NULL_VECTOR, NULL_VECTOR);
 					
-					PrintToChat(param1, "[SM] %t", "Teleported To Bombsite", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "[SM] %t", "Teleported To Bombsite", g_SelectedBombSite[param1] + 1);
 					ShowOptionsMenu(param1);
 				}
 				
 				case 1:
 				{
-					g_IsChangingSettings[param1] = true;
-					PrintToChat(param1, "[SM] %t", "Type Bombsite Settings");
-					PrintToChat(param1, "[SM] %t", "Bombsite Abort Action");
+					if (g_ChangingSettings[param1] == Changing_Limit)
+					{
+						CPrintToChat(param1, "[SM] %t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
+					}
+					
+					g_ChangingSettings[param1] = Changing_Letter;
+					CPrintToChat(param1, "[SM] %t", "Type Bombsite Letter", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "[SM] %t", "Abort Action");
 					ShowOptionsMenu(param1);
 				}
 				
 				case 2:
 				{
-					if (g_IsChangingSettings[param1])
+					if (g_ChangingSettings[param1] == Changing_Letter)
 					{
-						PrintToChat(param1, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[param1] + 1);
-						g_IsChangingSettings[param1] = false;
+						CPrintToChat(param1, "[SM] %t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
+					}
+					
+					g_ChangingSettings[param1] = Changing_Limit;
+					CPrintToChat(param1, "[SM] %t", "Type Bombsite Limit", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "[SM] %t", "Abort Action");
+					ShowOptionsMenu(param1);
+				}
+				
+				case 3:
+				{
+					if (g_ChangingSettings[param1] == Changing_Letter)
+					{
+						CPrintToChat(param1, "[SM] %t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
+						g_ChangingSettings[param1] = Not_Changing;
+					}
+					
+					else if (g_ChangingSettings[param1] == Changing_Limit)
+					{
+						CPrintToChat(param1, "[SM] %t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
+						g_ChangingSettings[param1] = Not_Changing;
 					}
 
 					int option = g_SelectedBombSite[param1];
 					g_BombSites[option].Letter = 0;
 					g_BombSites[option].LimitCT = 0;
 					
-					PrintToChat(param1, "[SM] %t", "Bombsite Settings Removed");
+					CPrintToChat(param1, "[SM] %t", "Bombsite Settings Removed", g_SelectedBombSite[param1] + 1);
 					ShowOptionsMenu(param1);
 				}
 			}
@@ -341,45 +399,47 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	if (!g_IsChangingSettings[client])
+	if (g_ChangingSettings[client] == Not_Changing)
 	{
 		return Plugin_Continue;
 	}
 	
 	if (StrEqual(sArgs, "cancel", false))
 	{
-		g_IsChangingSettings[client] = false;
-		PrintToChat(client, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[client] + 1);
+		g_ChangingSettings[client] = Not_Changing;
+		CPrintToChat(client, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[client] + 1);
 		return Plugin_Handled;
 	}
 	
-	char letter = sArgs[0];
 	int option = g_SelectedBombSite[client];
-	
-	if (!IsCharAlpha(letter))
+	if (g_ChangingSettings[client] == Changing_Letter)
 	{
-		PrintToChat(client, "[SM] %t", "Bombsite Invalid Letter");
-		PrintToChat(client, "[SM] %t", "Bombsite Abort Action");
-		return Plugin_Handled;
+		char letter = CharToUpper(sArgs[0]);
+		if (!IsCharAlpha(letter))
+		{
+			CPrintToChat(client, "[SM] %t", "Bombsite Invalid Letter");
+			CPrintToChat(client, "[SM] %t", "Abort Action");
+			return Plugin_Handled;
+		}
+		
+		g_BombSites[option].Letter = letter;
+		CPrintToChat(client, "[SM] %t", "Bombsite Letter Changed", option + 1);
+	}
+	else if (g_ChangingSettings[client] == Changing_Limit)
+	{
+		int limit;
+		if (!StringToIntEx(sArgs[0], limit) || limit < 1)
+		{
+			CPrintToChat(client, "[SM] %t", "Bombsite Invalid Limit");
+			CPrintToChat(client, "[SM] %t", "Abort Action");
+			return Plugin_Handled;
+		}
+		
+		g_BombSites[option].LimitCT = limit;
+		CPrintToChat(client, "[SM] %t", "Bombsite Limit Changed", option + 1);
 	}
 	
-	char buffer[65];
-	Format(buffer, sizeof(buffer), "%s", sArgs);
-	ReplaceString(buffer, sizeof(buffer), " ", "");
-	
-	int limit;
-	if (!StringToIntEx(sArgs[1], limit) || limit < 1)
-	{
-		PrintToChat(client, "[SM] %t", "Bombsite Invalid Limit");
-		PrintToChat(client, "[SM] %t", "Bombsite Abort Action");
-		return Plugin_Handled;
-	}
-	
-	g_IsChangingSettings[client] = false;
-	g_BombSites[option].Letter = letter;
-	g_BombSites[option].LimitCT = limit;
-
-	PrintToChat(client, "[SM] %t", "Bombsite Settings Changed", letter, limit);
+	g_ChangingSettings[client] = Not_Changing;
 	ShowOptionsMenu(client);
 	return Plugin_Handled;
 }
