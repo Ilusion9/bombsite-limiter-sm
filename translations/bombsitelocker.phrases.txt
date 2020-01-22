@@ -86,7 +86,7 @@
 	
 	"Bombsite Invalid Limit"
 	{
-		"en"			"Invalid limit of {blue}CTs{default} specified. Please type again!"
+		"en"			"The limit of {blue}CTs{default} must be a number and greater than 0. Please type again!"
 	}
 	
 	"Bombsite Limit Changed"
