@@ -3,7 +3,7 @@
 	"Bombsite Disabled Reason"
 	{
 		"#format"		"{1:c},{2:d}"
-		"en"			"{green}Bombsite {1}{default} is restricted this round due to fewer {blue}CTs{default} than {orange}{2}{default}."
+		"en"			"{green}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
 	}
 	
 	"Map Without Bombsites"
@@ -30,7 +30,7 @@
 	"Teleported To Bombsite"
 	{
 		"#format"		"{1:d}"
-		"en"			"You have been teleported to {green}Bombsite {1}{default}."
+		"en"			"You have been teleported to Bombsite {1}."
 	}
 	
 	"Bombsite Set Letter"
@@ -47,24 +47,24 @@
 	"Type Bombsite Letter"
 	{
 		"#format"		"{1:d}"
-		"en"			"Type in chat the letter of {green}Bombsite {1}{default}."
+		"en"			"Type in chat the letter of Bombsite {1}."
 	}
 	
 	"Bombsite Invalid Letter"
 	{
-		"en"			"The letter must be between {orange}'A'{default} and {orange}'Z'{default}. Please type again!"
+		"en"			"{red}The letter must be between 'A' and 'Z'. Please type again!"
 	}
 	
 	"Action Changing Letter Canceled"
 	{
 		"#format"		"{1:d}"
-		"en"			"The action to change the letter of {green}Bombsite {1}{default} has been canceled."
+		"en"			"{orange}The action to change the letter of Bombsite {1} has been canceled."
 	}
 	
 	"Bombsite Letter Changed"
 	{
 		"#format"		"{1:d}"
-		"en"			"The letter of {green}Bombsite {1}{default} has been changed."
+		"en"			"The letter of Bombsite {1} has been changed."
 	}
 	
 	"Bombsite Set Limit"
@@ -81,24 +81,24 @@
 	"Type Bombsite Limit"
 	{
 		"#format"		"{1:d}"
-		"en"			"Type in chat the limit of {blue}CTs{default} for {green}Bombsite {1}{default}."
+		"en"			"Type in chat the limit of CTs for Bombsite {1}."
 	}
 	
 	"Bombsite Invalid Limit"
 	{
-		"en"			"The limit of {blue}CTs{default} must be a number and greater than 0. Please type again!"
+		"en"			"{red}The limit of CTs must be a number and greater than 0. Please type again!"
 	}
 	
 	"Bombsite Limit Changed"
 	{
 		"#format"		"{1:d}"
-		"en"			"The limit of {blue}CTs{default} for {green}Bombsite {1}{default} has been changed."
+		"en"			"The limit of CTs for Bombsite {1} has been changed."
 	}
 	
 	"Action Changing Limit Canceled"
 	{
 		"#format"		"{1:d}"
-		"en"			"The action to change the limit of {blue}CTs{default} for {green}Bombsite {1}{default} has been canceled."
+		"en"			"{orange}The action to change the limit of CTs for Bombsite {1} has been canceled."
 	}
 	
 	"Bombsite Remove Settings"
@@ -109,11 +109,11 @@
 	"Bombsite Settings Removed"
 	{
 		"#format"		"{1:d}"
-		"en"			"The settings of {green}Bombsite {1}{default} have been removed."
+		"en"			"The settings of Bombsite {1} have been removed."
 	}
 	
 	"Abort Action"
 	{
-		"en"			"Type {red}'cancel'{default} to abort this action."
+		"en"			"Type {orange}'cancel'{default} to abort this action."
 	}
 }
