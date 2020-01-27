@@ -332,14 +332,14 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 				case 0:
 				{
 					int option = g_SelectedBombSite[param1];
-					int ent = g_BombSites[option].EntityId;
+					int entity = g_BombSites[option].EntityId;
 					
-					float origin[3], vecMins[3], vecMaxs[3];
-					GetEntPropVector(ent, Prop_Send, "m_vecMins", vecMins); 
-					GetEntPropVector(ent, Prop_Send, "m_vecMaxs", vecMaxs);
+					float position[3], vecMins[3], vecMaxs[3];
+					GetEntPropVector(entity, Prop_Send, "m_vecMins", vecMins); 
+					GetEntPropVector(entity, Prop_Send, "m_vecMaxs", vecMaxs);
 					
-					GetMiddleOfABox(vecMins, vecMaxs, origin);
-					TeleportEntity(param1, origin, NULL_VECTOR, NULL_VECTOR);
+					GetMiddleOfABox(vecMins, vecMaxs, position);
+					TeleportEntity(param1, position, NULL_VECTOR, NULL_VECTOR);
 					
 					CPrintToChat(param1, "[SM] %t", "Teleported To Bombsite", g_SelectedBombSite[param1] + 1);
 					ShowOptionsMenu(param1);
@@ -465,8 +465,7 @@ void SetConVar(const char[] name, const char[] value)
 
 int GetCounterTerroristsCount()
 {
-	int num = 0;
-	
+	int num;
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == CS_TEAM_CT)
@@ -479,12 +478,12 @@ int GetCounterTerroristsCount()
 }
 
 /* From https://github.com/Franc1sco/DevZones plugin */
-void GetMiddleOfABox(const float vec1[3], const float vec2[3], float buffer[3])
+void GetMiddleOfABox(const float vec1[3], const float vec2[3], float result[3])
 {
 	float mid[3];
 	MakeVectorFromPoints(vec1, vec2, mid);
 	mid[0] = mid[0] / 2.0;
 	mid[1] = mid[1] / 2.0;
 	mid[2] = mid[2] / 2.0;
-	AddVectors(vec1, mid, buffer);
+	AddVectors(vec1, mid, result);
 }
