@@ -478,7 +478,7 @@ int GetCounterTerroristsCount()
 	return num;
 }
 
-/* From devzones plugin */
+/* From https://github.com/Franc1sco/DevZones plugin */
 void GetMiddleOfABox(const float vec1[3], const float vec2[3], float buffer[3])
 {
 	float mid[3];
