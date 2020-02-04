@@ -219,7 +219,7 @@ public Action Command_Bombsites(int client, int args)
 	
 	if (!g_NumOfBombSites)
 	{
-		ReplyToCommand(client, "[SM] %t", "Map Without Bombsites");
+		CReplyToCommand(client, "[SM] %t", "Map Without Bombsites");
 		return Plugin_Handled;
 	}
 	
