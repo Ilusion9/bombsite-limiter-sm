@@ -3,7 +3,7 @@
 	"Bombsite Disabled Reason"
 	{
 		"#format"		"{1:c},{2:d}"
-		"en"			"{green}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
+		"en"			"{orange}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
 	}
 	
 	"Map Without Bombsites"
