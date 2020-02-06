@@ -30,6 +30,7 @@ enum ChangeState
 	Changing_Limit
 }
 
+ConVar g_Cvar_GraceTime;
 ConVar g_Cvar_FreezeTime;
 Handle g_Timer_FreezeEnd;
 
@@ -45,16 +46,26 @@ public void OnPluginStart()
 	LoadTranslations("bombsitelocker.phrases");
 	
 	RegAdminCmd("sm_bombsites", Command_Bombsites, ADMFLAG_RCON);
-	
 	HookEvent("round_start", Event_RoundStart);	
+	
+	g_Cvar_GraceTime = FindConVar("mp_join_grace_time");
+	g_Cvar_GraceTime.AddChangeHook(ConVarChange_GraceTime);
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
+}
+
+public void ConVarChange_GraceTime(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (g_Cvar_GraceTime.IntValue != 0)
+	{
+		g_Cvar_GraceTime.IntValue = 0;
+	}
 }
 
 public void OnMapStart()
 {
 	g_NumOfBombSites = 0;
-	int entity = -1;
 	
+	int entity = -1;
 	while ((entity = FindEntityByClassname(entity, "func_bomb_target")) != -1)
 	{
 		g_BombSites[g_NumOfBombSites].EntityId = entity;
@@ -116,7 +127,7 @@ public void OnConfigsExecuted()
 	}
 	
 	delete kv;
-	SetConVar("mp_join_grace_time", "0");
+	g_Cvar_GraceTime.IntValue = 0;
 }
 
 public void OnMapEnd()
@@ -454,15 +465,6 @@ bool IsWarmupPeriod()
 	return view_as<bool>(GameRules_GetProp("m_bWarmupPeriod"));
 }
 
-void SetConVar(const char[] name, const char[] value)
-{
-	ConVar cvar = FindConVar(name);
-	if (cvar)
-	{
-		cvar.SetString(value);
-	}
-}
-
 int GetCounterTerroristsCount()
 {
 	int num;
@@ -480,10 +482,12 @@ int GetCounterTerroristsCount()
 /* From https://github.com/Franc1sco/DevZones plugin */
 void GetMiddleOfABox(const float vec1[3], const float vec2[3], float result[3])
 {
-	float mid[3];
-	MakeVectorFromPoints(vec1, vec2, mid);
-	mid[0] = mid[0] / 2.0;
-	mid[1] = mid[1] / 2.0;
-	mid[2] = mid[2] / 2.0;
-	AddVectors(vec1, mid, result);
+	float buffer[3];
+	MakeVectorFromPoints(vec1, vec2, buffer);
+	for (int i = 0; i < 3; i++)
+	{
+		buffer[i] /= 2.0;
+	}
+	
+	AddVectors(vec1, buffer, result);
 }
