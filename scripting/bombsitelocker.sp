@@ -2,7 +2,6 @@
 #include <sdktools>
 #include <cstrike>
 #include <colorlib>
-
 #pragma newdecls required
 
 public Plugin myinfo =
@@ -204,6 +203,11 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
+	if (!g_NumOfBombSites)
+	{
+		return Plugin_Stop;
+	}
+	
 	int numOfCTs = GetCounterTerroristsCount();
 	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
@@ -222,6 +226,7 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 	}
 	
 	g_Timer_FreezeEnd = null;
+	return Plugin_Stop;
 }
 
 public Action Command_Bombsites(int client, int args)
