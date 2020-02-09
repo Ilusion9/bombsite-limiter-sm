@@ -6,7 +6,7 @@
 
 public Plugin myinfo =
 {
-	name = "Bombsite Locker",
+	name = "Bombsite Restriction",
 	author = "Ilusion9",
 	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
 	version = "3.0",
@@ -42,7 +42,7 @@ int g_SelectedBombSite[MAXPLAYERS + 1];
 public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
-	LoadTranslations("bombsitelocker.phrases");
+	LoadTranslations("bombsiterestriction.phrases");
 	
 	RegAdminCmd("sm_bombsites", Command_Bombsites, ADMFLAG_RCON);
 	HookEvent("round_start", Event_RoundStart);	
