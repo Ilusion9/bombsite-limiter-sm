@@ -133,6 +133,10 @@ public void OnConfigsExecuted()
 public void OnMapEnd()
 {
 	delete g_Timer_FreezeEnd;
+	if (!g_NumOfBombSites)
+	{
+		return;
+	}
 	
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
 	GetCurrentMap(map, sizeof(map));
