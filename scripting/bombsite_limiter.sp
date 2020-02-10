@@ -6,7 +6,7 @@
 
 public Plugin myinfo =
 {
-	name = "Bombsite Restriction",
+	name = "Bombsite Limiter",
 	author = "Ilusion9",
 	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
 	version = "3.0",
@@ -42,7 +42,7 @@ int g_SelectedBombSite[MAXPLAYERS + 1];
 public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
-	LoadTranslations("bombsiterestriction.phrases");
+	LoadTranslations("bombsite_limiter.phrases");
 	
 	RegAdminCmd("sm_bombsites", Command_Bombsites, ADMFLAG_RCON);
 	HookEvent("round_start", Event_RoundStart);	
@@ -80,7 +80,7 @@ public void OnConfigsExecuted()
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
 	GetCurrentMap(map, sizeof(map));
 	
-	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker/%s.sites.cfg", map);
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
 	
 	if (kv.ImportFromFile(path))
@@ -140,13 +140,13 @@ public void OnMapEnd()
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
 	GetCurrentMap(map, sizeof(map));
 	
-	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker");
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter");
 	if (!DirExists(path))
 	{
 		CreateDirectory(path, 0777);
 	}
 	
-	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_locker/%s.sites.cfg", map);
+	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
 	kv.ImportFromFile(path);
 	
