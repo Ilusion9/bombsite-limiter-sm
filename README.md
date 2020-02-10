@@ -1,5 +1,5 @@
 # Description
-Disable specified bombsites if there are fewer CTs than their accepted limit.
+Disable specified bombsites if there are fewer CTs than their accepted limit. Designed for CSGO. Might work in CSS.
 
 # Alliedmods
 https://forums.alliedmods.net/showthread.php?t=317689
