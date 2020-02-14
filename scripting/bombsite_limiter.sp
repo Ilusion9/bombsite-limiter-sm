@@ -203,30 +203,27 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
-	if (!g_NumOfBombSites)
+	if (g_NumOfBombSites)
 	{
-		return Plugin_Stop;
-	}
-	
-	int numOfCTs = GetCounterTerroristsCount();
-	for (int i = 0; i < g_NumOfBombSites; i++)
-	{
-		AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
-		
-		if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
+		int numOfCTs = GetCounterTerroristsCount();
+		for (int i = 0; i < g_NumOfBombSites; i++)
 		{
-			continue;
-		}
-		
-		if (numOfCTs < g_BombSites[i].LimitCT)
-		{
-			AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
-			CPrintToChatAll("> %t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
+			AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
+			
+			if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
+			{
+				continue;
+			}
+			
+			if (numOfCTs < g_BombSites[i].LimitCT)
+			{
+				AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
+				CPrintToChatAll("> %t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
+			}
 		}
 	}
 	
 	g_Timer_FreezeEnd = null;
-	return Plugin_Stop;
 }
 
 public Action Command_Bombsites(int client, int args)
