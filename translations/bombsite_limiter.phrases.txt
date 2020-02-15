@@ -1,5 +1,10 @@
 "Phrases"
 {
+	"No Bombsite Disabled"
+	{
+		"en"			"There are no bombsites restricted this round."
+	}
+	
 	"Bombsite Disabled Reason"
 	{
 		"#format"		"{1:c},{2:d}"
