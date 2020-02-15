@@ -205,7 +205,9 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
 	if (g_NumOfBombSites)
 	{
+		bool hasRestrictions = false;
 		int numOfCTs = GetCounterTerroristsCount();
+		
 		for (int i = 0; i < g_NumOfBombSites; i++)
 		{
 			AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
@@ -217,9 +219,15 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 			
 			if (numOfCTs < g_BombSites[i].LimitCT)
 			{
+				hasRestrictions = true;
 				AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
 				CPrintToChatAll("> %t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
 			}
+		}
+		
+		if (!hasRestrictions)
+		{
+			CPrintToChatAll("> %t", "No Bombsite Disabled");
 		}
 	}
 	
