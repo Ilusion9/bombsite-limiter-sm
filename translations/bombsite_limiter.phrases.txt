@@ -1,3 +1,9 @@
+// Available chat colors:
+// 
+// {default}, {darkred}, {purple}, {green}, {lightgreen}, 
+// {lime}, {red}, {grey}, {yellow}, {orange}, {bluegrey},
+// {blue}, {darkblue}, {grey2}, {orchid}, {lightred}
+
 "Phrases"
 {
 	"No Bombsite Disabled"
