@@ -238,13 +238,12 @@ public Action Command_Bombsites(int client, int args)
 {
 	if (!client)
 	{
-		ReplyToCommand(client, "[SM] %t", "Command is in-game only");
 		return Plugin_Handled;
 	}
 	
 	if (!g_NumOfBombSites)
 	{
-		CReplyToCommand(client, "[SM] %t", "Map Without Bombsites");
+		CReplyToCommand(client, "%t", "Map Without Bombsites");
 		return Plugin_Handled;
 	}
 	
@@ -334,13 +333,13 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 		{
 			if (g_ChangingSettings[param1] == Changing_Letter)
 			{
-				CPrintToChat(param1, "[SM] %t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
+				CPrintToChat(param1, "%t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
 				g_ChangingSettings[param1] = Not_Changing;
 			}
 			
 			else if (g_ChangingSettings[param1] == Changing_Limit)
 			{
-				CPrintToChat(param1, "[SM] %t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
+				CPrintToChat(param1, "%t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
 				g_ChangingSettings[param1] = Not_Changing;
 			}
 			
@@ -366,7 +365,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					GetMiddleOfABox(vecMins, vecMaxs, position);
 					TeleportEntity(param1, position, NULL_VECTOR, NULL_VECTOR);
 					
-					CPrintToChat(param1, "[SM] %t", "Teleported To Bombsite", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "%t", "Teleported To Bombsite", g_SelectedBombSite[param1] + 1);
 					ShowOptionsMenu(param1);
 				}
 				
@@ -374,12 +373,12 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 				{
 					if (g_ChangingSettings[param1] == Changing_Limit)
 					{
-						CPrintToChat(param1, "[SM] %t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
+						CPrintToChat(param1, "%t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
 					}
 					
 					g_ChangingSettings[param1] = Changing_Letter;
-					CPrintToChat(param1, "[SM] %t", "Type Bombsite Letter", g_SelectedBombSite[param1] + 1);
-					CPrintToChat(param1, "[SM] %t", "Abort Action");
+					CPrintToChat(param1, "%t", "Type Bombsite Letter", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "%t", "Abort Action");
 					ShowOptionsMenu(param1);
 				}
 				
@@ -387,12 +386,12 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 				{
 					if (g_ChangingSettings[param1] == Changing_Letter)
 					{
-						CPrintToChat(param1, "[SM] %t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
+						CPrintToChat(param1, "%t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
 					}
 					
 					g_ChangingSettings[param1] = Changing_Limit;
-					CPrintToChat(param1, "[SM] %t", "Type Bombsite Limit", g_SelectedBombSite[param1] + 1);
-					CPrintToChat(param1, "[SM] %t", "Abort Action");
+					CPrintToChat(param1, "%t", "Type Bombsite Limit", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "%t", "Abort Action");
 					ShowOptionsMenu(param1);
 				}
 				
@@ -400,13 +399,13 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 				{
 					if (g_ChangingSettings[param1] == Changing_Letter)
 					{
-						CPrintToChat(param1, "[SM] %t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
+						CPrintToChat(param1, "%t", "Action Changing Letter Canceled", g_SelectedBombSite[param1] + 1);
 						g_ChangingSettings[param1] = Not_Changing;
 					}
 					
 					else if (g_ChangingSettings[param1] == Changing_Limit)
 					{
-						CPrintToChat(param1, "[SM] %t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
+						CPrintToChat(param1, "%t", "Action Changing Limit Canceled", g_SelectedBombSite[param1] + 1);
 						g_ChangingSettings[param1] = Not_Changing;
 					}
 
@@ -414,7 +413,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					g_BombSites[option].Letter = 0;
 					g_BombSites[option].LimitCT = 0;
 					
-					CPrintToChat(param1, "[SM] %t", "Bombsite Settings Removed", g_SelectedBombSite[param1] + 1);
+					CPrintToChat(param1, "%t", "Bombsite Settings Removed", g_SelectedBombSite[param1] + 1);
 					ShowOptionsMenu(param1);
 				}
 			}
@@ -432,7 +431,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	if (StrEqual(sArgs, "cancel", false))
 	{
 		g_ChangingSettings[client] = Not_Changing;
-		CPrintToChat(client, "[SM] %t", "Bombsite Action Canceled", g_SelectedBombSite[client] + 1);
+		CPrintToChat(client, "%t", "Bombsite Action Canceled", g_SelectedBombSite[client] + 1);
 		return Plugin_Handled;
 	}
 	
@@ -442,26 +441,26 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		char letter = CharToUpper(sArgs[0]);
 		if (!IsCharAlpha(letter))
 		{
-			CPrintToChat(client, "[SM] %t", "Bombsite Invalid Letter");
-			CPrintToChat(client, "[SM] %t", "Abort Action");
+			CPrintToChat(client, "%t", "Bombsite Invalid Letter");
+			CPrintToChat(client, "%t", "Abort Action");
 			return Plugin_Handled;
 		}
 		
 		g_BombSites[option].Letter = letter;
-		CPrintToChat(client, "[SM] %t", "Bombsite Letter Changed", option + 1);
+		CPrintToChat(client, "%t", "Bombsite Letter Changed", option + 1);
 	}
 	else if (g_ChangingSettings[client] == Changing_Limit)
 	{
 		int limit;
 		if (!StringToIntEx(sArgs[0], limit) || limit < 1)
 		{
-			CPrintToChat(client, "[SM] %t", "Bombsite Invalid Limit");
-			CPrintToChat(client, "[SM] %t", "Abort Action");
+			CPrintToChat(client, "%t", "Bombsite Invalid Limit");
+			CPrintToChat(client, "%t", "Abort Action");
 			return Plugin_Handled;
 		}
 		
 		g_BombSites[option].LimitCT = limit;
-		CPrintToChat(client, "[SM] %t", "Bombsite Limit Changed", option + 1);
+		CPrintToChat(client, "%t", "Bombsite Limit Changed", option + 1);
 	}
 	
 	g_ChangingSettings[client] = Not_Changing;
