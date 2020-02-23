@@ -63,7 +63,7 @@
 	
 	"Bombsite Invalid Letter"
 	{
-		"en"			"{red}The letter must be between 'A' and 'Z'. Please type again!"
+		"en"			"{lightred}The letter must be between 'A' and 'Z'. Please type again!"
 	}
 	
 	"Action Changing Letter Canceled"
@@ -97,7 +97,7 @@
 	
 	"Bombsite Invalid Limit"
 	{
-		"en"			"{red}The limit of CTs must be a number and greater than 0. Please type again!"
+		"en"			"{lightred}The limit of CTs must be a number and greater than 0. Please type again!"
 	}
 	
 	"Bombsite Limit Changed"
@@ -125,6 +125,6 @@
 	
 	"Abort Action"
 	{
-		"en"			"Type {orange}'cancel'{default} to abort this action."
+		"en"			"Type {lightred}'cancel'{default} to abort this action."
 	}
 }
