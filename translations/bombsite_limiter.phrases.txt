@@ -41,7 +41,7 @@
 	"Teleported To Bombsite"
 	{
 		"#format"		"{1:d}"
-		"en"			"You have been teleported to Bombsite {1}."
+		"en"			"{lime}You have been teleported to Bombsite {1}."
 	}
 	
 	"Bombsite Set Letter"
@@ -58,7 +58,7 @@
 	"Type Bombsite Letter"
 	{
 		"#format"		"{1:d}"
-		"en"			"Type in chat the letter of Bombsite {1}."
+		"en"			"{lime}Type in chat the letter of Bombsite {1}."
 	}
 	
 	"Bombsite Invalid Letter"
@@ -75,7 +75,7 @@
 	"Bombsite Letter Changed"
 	{
 		"#format"		"{1:d}"
-		"en"			"The letter of Bombsite {1} has been changed."
+		"en"			"{lime}The letter of Bombsite {1} has been changed."
 	}
 	
 	"Bombsite Set Limit"
@@ -92,7 +92,7 @@
 	"Type Bombsite Limit"
 	{
 		"#format"		"{1:d}"
-		"en"			"Type in chat the limit of CTs for Bombsite {1}."
+		"en"			"{lime}Type in chat the limit of CTs for Bombsite {1}."
 	}
 	
 	"Bombsite Invalid Limit"
@@ -103,7 +103,7 @@
 	"Bombsite Limit Changed"
 	{
 		"#format"		"{1:d}"
-		"en"			"The limit of CTs for Bombsite {1} has been changed."
+		"en"			"{lime}The limit of CTs for Bombsite {1} has been changed."
 	}
 	
 	"Action Changing Limit Canceled"
@@ -120,7 +120,7 @@
 	"Bombsite Settings Removed"
 	{
 		"#format"		"{1:d}"
-		"en"			"The settings of Bombsite {1} have been removed."
+		"en"			"{orange}The settings of Bombsite {1} have been removed."
 	}
 	
 	"Abort Action"
