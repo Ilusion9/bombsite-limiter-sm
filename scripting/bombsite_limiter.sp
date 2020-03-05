@@ -16,8 +16,8 @@ public Plugin myinfo =
 #define MAX_BOMBSITES	10
 enum struct SiteInfo
 {
-	int EntityId;
-	int HammerId;
+	int entityId;
+	int hammerId;
 	char Letter;
 	int LimitCT;
 }
@@ -63,12 +63,12 @@ public void ConVarChange_GraceTime(ConVar convar, const char[] oldValue, const c
 public void OnMapStart()
 {
 	g_NumOfBombSites = 0;
-	
 	int entity = -1;
+	
 	while ((entity = FindEntityByClassname(entity, "func_bomb_target")) != -1)
 	{
-		g_BombSites[g_NumOfBombSites].EntityId = entity;
-		g_BombSites[g_NumOfBombSites].HammerId = GetEntityHammerId(entity);
+		g_BombSites[g_NumOfBombSites].entityId = entity;
+		g_BombSites[g_NumOfBombSites].hammerId = GetEntityHammerId(entity);
 		g_BombSites[g_NumOfBombSites].Letter = 0;
 		g_BombSites[g_NumOfBombSites].LimitCT = 0;
 		g_NumOfBombSites++;
@@ -83,46 +83,55 @@ public void OnConfigsExecuted()
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
 	
-	if (kv.ImportFromFile(path))
+	if (!kv.ImportFromFile(path))
 	{
-		if (kv.GotoFirstSubKey(false))
+		delete kv;
+		return;
+	}
+	
+	char buffer[256];
+	int hammerId;
+	
+	if (kv.GotoFirstSubKey(false))
+	{
+		do
 		{
-			do
+			if (!kv.GetSectionName(buffer, sizeof(buffer)))
 			{
-				char section[65];
-				kv.GetSectionName(section, sizeof(section));
-				int hammerId = StringToInt(section);
-				
-				for (int i = 0; i < g_NumOfBombSites; i++)
+				continue;
+			}
+			
+			hammerId = StringToInt(buffer);
+			for (int i = 0; i < g_NumOfBombSites; i++)
+			{
+				if (g_BombSites[i].hammerId != hammerId)
 				{
-					if (g_BombSites[i].HammerId == hammerId)
-					{
-						char letter[3];
-						kv.GetString("letter", letter, sizeof(letter), "\n");
-						g_BombSites[i].Letter = CharToUpper(letter[0]);
-						
-						if (!IsCharAlpha(g_BombSites[i].Letter))
-						{
-							g_BombSites[i].Letter = 0;
-							g_BombSites[i].LimitCT = 0;
-							LogError("Invalid letter specified for section \"%d\" (map: \"%s\")", hammerId, map);
-							break;
-						}
-						
-						g_BombSites[i].LimitCT = kv.GetNum("ct_limit", 0);
-						if (g_BombSites[i].LimitCT < 1)
-						{
-							g_BombSites[i].Letter = 0;
-							g_BombSites[i].LimitCT = 0;
-							LogError("Invalid limit of CTs specified for section \"%d\" (map: \"%s\")", hammerId, map);
-						}
-						
-						break;
-					}
+					continue;
+				}
+					
+				kv.GetString("letter", buffer, sizeof(buffer), "\n");
+				g_BombSites[i].Letter = CharToUpper(buffer[0]);
+				
+				if (!IsCharAlpha(g_BombSites[i].Letter))
+				{
+					g_BombSites[i].Letter = 0;
+					g_BombSites[i].LimitCT = 0;
+					LogError("Invalid letter specified for section \"%d\" (map: \"%s\")", hammerId, map);
+					break;
 				}
 				
-			} while (kv.GotoNextKey(false));
-		}
+				g_BombSites[i].LimitCT = kv.GetNum("ct_limit", 0);
+				if (g_BombSites[i].LimitCT < 1)
+				{
+					g_BombSites[i].Letter = 0;
+					g_BombSites[i].LimitCT = 0;
+					LogError("Invalid limit of CTs specified for section \"%d\" (map: \"%s\")", hammerId, map);
+				}
+				
+				break;
+			}
+			
+		} while (kv.GotoNextKey(false));
 	}
 	
 	delete kv;
@@ -148,16 +157,17 @@ public void OnMapEnd()
 	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
+	
 	kv.ImportFromFile(path);
+	char buffer[256];
 	
 	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
-		char key[65];
-		Format(key, sizeof(key), "%d", g_BombSites[i].HammerId);
+		Format(buffer, sizeof(buffer), "%d", g_BombSites[i].hammerId);
 		
 		if (!g_BombSites[i].Letter || !g_BombSites[i].LimitCT)
 		{
-			if (kv.JumpToKey(key))
+			if (kv.JumpToKey(buffer))
 			{
 				kv.DeleteThis();
 				kv.GoBack();
@@ -166,11 +176,13 @@ public void OnMapEnd()
 			continue;
 		}
 		
-		kv.JumpToKey(key, true);
-		char letter[3];
-		Format(letter, sizeof(letter), "%c", g_BombSites[i].Letter);
+		if (!kv.JumpToKey(buffer, true))
+		{
+			continue;
+		}
 		
-		kv.SetString("letter", letter);
+		Format(buffer, sizeof(buffer), "%c", g_BombSites[i].Letter);
+		kv.SetString("letter", buffer);
 		kv.SetNum("ct_limit", g_BombSites[i].LimitCT);		
 		kv.GoBack();
 	}
@@ -210,7 +222,7 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 		
 		for (int i = 0; i < g_NumOfBombSites; i++)
 		{
-			AcceptEntityInput(g_BombSites[i].EntityId, "Enable");
+			AcceptEntityInput(g_BombSites[i].entityId, "Enable");
 			
 			if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
 			{
@@ -220,7 +232,7 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 			if (numOfCTs < g_BombSites[i].LimitCT)
 			{
 				hasRestrictions = true;
-				AcceptEntityInput(g_BombSites[i].EntityId, "Disable");
+				AcceptEntityInput(g_BombSites[i].entityId, "Disable");
 				CPrintToChatAll("> %t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
 			}
 		}
@@ -356,7 +368,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 				case 0:
 				{
 					int option = g_SelectedBombSite[param1];
-					int entity = g_BombSites[option].EntityId;
+					int entity = g_BombSites[option].entityId;
 					
 					float position[3], vecMins[3], vecMaxs[3];
 					GetEntPropVector(entity, Prop_Send, "m_vecMins", vecMins); 
