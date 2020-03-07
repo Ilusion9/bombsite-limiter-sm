@@ -33,6 +33,12 @@
 		"en"			"Bombsite {1}"
 	}
 	
+	"Bombsite Number with Restrictions"
+	{
+		"#format"		"{1:d},{2:c},{3:d}"
+		"en"			"Bombsite {1} ({2} - {3})"
+	}
+	
 	"Teleport To Bombsite"
 	{
 		"en"			"Teleport to"
@@ -52,7 +58,7 @@
 	"Bombsite Change Letter"
 	{
 		"#format"		"{1:c}"
-		"en"			"Change letter [{1}]"
+		"en"			"Change letter ({1})"
 	}
 	
 	"Type Bombsite Letter"
@@ -86,7 +92,7 @@
 	"Bombsite Change Limit"
 	{
 		"#format"		"{1:d}"
-		"en"			"Change limit of CTs [{1}]"
+		"en"			"Change limit of CTs ({1})"
 	}
 	
 	"Type Bombsite Limit"
