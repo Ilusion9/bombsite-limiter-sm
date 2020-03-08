@@ -232,13 +232,13 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 			{
 				hasRestrictions = true;
 				AcceptEntityInput(g_BombSites[i].entityId, "Disable");
-				CPrintToChatAll("> %t", "Bombsite Disabled Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
+				CPrintToChatAll("> %t", "Bombsite Restricted with Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
 			}
 		}
 		
 		if (!hasRestrictions)
 		{
-			CPrintToChatAll("> %t", "No Bombsite Disabled");
+			CPrintToChatAll("> %t", "No Bombsites Restricted");
 		}
 	}
 	
@@ -272,7 +272,7 @@ void ShowBombSitesMenu(int client)
 	{
 		if (g_BombSites[i].Letter && g_BombSites[i].LimitCT)
 		{
-			Format(buffer, sizeof(buffer), "%T", "Bombsite Number with Restrictions", client, i + 1, g_BombSites[i].Letter, g_BombSites[i].LimitCT);
+			Format(buffer, sizeof(buffer), "%T", "Bombsite Number with Settings", client, i + 1, g_BombSites[i].Letter, g_BombSites[i].LimitCT);
 		}
 		else
 		{
@@ -309,7 +309,7 @@ void ShowOptionsMenu(int client)
 	Menu menu = new Menu(Menu_OptionsHandler);
 	
 	menu.SetTitle("%T", "Bombsite Number", client, selectedBombsite + 1);
-	Format(buffer, sizeof(buffer), "%T", "Teleport To Bombsite", client);
+	Format(buffer, sizeof(buffer), "%T", "Teleport to Bombsite", client);
 	menu.AddItem("", buffer);
 	
 	if (g_BombSites[selectedBombsite].Letter)
@@ -385,7 +385,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					GetMiddleOfABox(vecMins, vecMaxs, position);
 					TeleportEntity(param1, position, NULL_VECTOR, NULL_VECTOR);
 					
-					CPrintToChat(param1, "%t", "Teleported To Bombsite", selectedBombsite + 1);
+					CPrintToChat(param1, "%t", "Teleported to Bombsite", selectedBombsite + 1);
 					ShowOptionsMenu(param1);
 				}
 				
