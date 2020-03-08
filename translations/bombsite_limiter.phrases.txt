@@ -6,12 +6,12 @@
 
 "Phrases"
 {
-	"No Bombsite Disabled"
+	"No Bombsites Restricted"
 	{
 		"en"			"There are no bombsites restricted this round."
 	}
 	
-	"Bombsite Disabled Reason"
+	"Bombsite Restricted with Reason"
 	{
 		"#format"		"{1:c},{2:d}"
 		"en"			"{orange}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
@@ -33,18 +33,18 @@
 		"en"			"Bombsite {1}"
 	}
 	
-	"Bombsite Number with Restrictions"
+	"Bombsite Number with Settings"
 	{
 		"#format"		"{1:d},{2:c},{3:d}"
 		"en"			"Bombsite {1} ({2} - {3})"
 	}
 	
-	"Teleport To Bombsite"
+	"Teleport to Bombsite"
 	{
 		"en"			"Teleport to"
 	}
 	
-	"Teleported To Bombsite"
+	"Teleported to Bombsite"
 	{
 		"#format"		"{1:d}"
 		"en"			"{lime}You have been teleported to Bombsite {1}."
