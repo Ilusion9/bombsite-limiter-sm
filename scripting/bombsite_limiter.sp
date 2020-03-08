@@ -188,6 +188,7 @@ public void OnMapEnd()
 		kv.GoBack();
 	}
 	
+	kv.Rewind();
 	kv.ExportToFile(path);
 	delete kv;
 }
