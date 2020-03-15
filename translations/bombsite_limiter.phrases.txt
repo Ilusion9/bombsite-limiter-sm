@@ -14,7 +14,7 @@
 	"Bombsite Restricted with Reason"
 	{
 		"#format"		"{1:c},{2:d}"
-		"en"			"{orange}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
+		"en"			"{red}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
 	}
 	
 	"Map Without Bombsites"
@@ -69,13 +69,13 @@
 	
 	"Bombsite Invalid Letter"
 	{
-		"en"			"{lightred}The letter must be between 'A' and 'Z'. Please type again!"
+		"en"			"{red}The letter must be between 'A' and 'Z'. Please type again!"
 	}
 	
 	"Action Changing Letter Canceled"
 	{
 		"#format"		"{1:d}"
-		"en"			"{orange}The action to change the letter of Bombsite {1} has been canceled."
+		"en"			"{blue}The action to change the letter of Bombsite {1} has been canceled."
 	}
 	
 	"Bombsite Letter Changed"
@@ -103,7 +103,7 @@
 	
 	"Bombsite Invalid Limit"
 	{
-		"en"			"{lightred}The limit of CTs must be a number and greater than 0. Please type again!"
+		"en"			"{red}The limit of CTs must be a number and greater than 0. Please type again!"
 	}
 	
 	"Bombsite Limit Changed"
@@ -115,7 +115,7 @@
 	"Action Changing Limit Canceled"
 	{
 		"#format"		"{1:d}"
-		"en"			"{orange}The action to change the limit of CTs for Bombsite {1} has been canceled."
+		"en"			"{blue}The action to change the limit of CTs for Bombsite {1} has been canceled."
 	}
 	
 	"Bombsite Remove Settings"
@@ -126,7 +126,7 @@
 	"Bombsite Settings Removed"
 	{
 		"#format"		"{1:d}"
-		"en"			"{orange}The settings of Bombsite {1} have been removed."
+		"en"			"{blue}The settings of Bombsite {1} have been removed."
 	}
 	
 	"Abort Action"
