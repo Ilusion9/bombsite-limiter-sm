@@ -9,14 +9,16 @@ public Plugin myinfo =
 	name = "Bombsite Limiter",
 	author = "Ilusion9",
 	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
-	version = "3.0",
+	version = "3.1",
 	url = "https://github.com/Ilusion9/"
 };
 
 enum struct SiteInfo
 {
 	int entityId;
-	int hammerId;
+	float vecOrigin[3];
+	float vecMins[3];
+	float vecMaxs[3];
 	char Letter;
 	int limitCTs;
 }
@@ -61,23 +63,30 @@ public void OnMapStart()
 {
 	g_NumOfBombSites = 0;
 	int entity = -1;
-	
+
 	while ((entity = FindEntityByClassname(entity, "func_bomb_target")) != -1)
 	{
 		g_BombSites[g_NumOfBombSites].entityId = entity;
-		g_BombSites[g_NumOfBombSites].hammerId = GetEntityHammerId(entity);
+		
+		GetEntPropVector(entity, Prop_Send, "m_vecMins", g_BombSites[g_NumOfBombSites].vecMins); 
+		GetEntPropVector(entity, Prop_Send, "m_vecMaxs", g_BombSites[g_NumOfBombSites].vecMaxs);
+		
+		GetMiddleOfABox(g_BombSites[g_NumOfBombSites].vecMins, g_BombSites[g_NumOfBombSites].vecMaxs, g_BombSites[g_NumOfBombSites].vecOrigin);
+		
 		g_BombSites[g_NumOfBombSites].Letter = 0;
 		g_BombSites[g_NumOfBombSites].limitCTs = 0;
+
 		g_NumOfBombSites++;
 	}
 }
 
 public void OnConfigsExecuted()
 {
-	int hammerId, limitCTs;
+	int limitCTs;
+	float origin[3];
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH], buffer[256];	
-	GetCurrentMap(map, sizeof(map));
 	
+	GetCurrentMap(map, sizeof(map));
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
 	
@@ -87,44 +96,19 @@ public void OnConfigsExecuted()
 		{
 			do
 			{
-				if (!kv.GetSectionName(buffer, sizeof(buffer)))
-				{
-					continue;
-				}
-				
-				if (!StringToIntEx(buffer, hammerId))
-				{
-					continue;
-				}
-				
 				for (int i = 0; i < g_NumOfBombSites; i++)
 				{
-					if (g_BombSites[i].hammerId != hammerId)
+					kv.GetVector("origin", origin);
+					if (!IsVecBetween(origin, g_BombSites[i].vecMins, g_BombSites[i].vecMaxs))
 					{
 						continue;
 					}
 					
 					kv.GetString("letter", buffer, sizeof(buffer), "");					
-					if (IsCharAlpha(buffer[0]))
-					{
-						g_BombSites[i].Letter = CharToUpper(buffer[0]);
-					}
-					else
-					{
-						g_BombSites[i].Letter = 0;
-						LogError("Invalid letter specified for section \"%d\" (map: \"%s\")", hammerId, map);
-					}
+					g_BombSites[i].Letter = IsCharAlpha(buffer[0]) ? CharToUpper(buffer[0]) : 0;
 					
 					limitCTs = kv.GetNum("ct_limit", 0);
-					if (limitCTs > 0)
-					{
-						g_BombSites[i].limitCTs = limitCTs;
-					}
-					else
-					{
-						g_BombSites[i].limitCTs = 0;
-						LogError("Invalid limit of CTs specified for section \"%d\" (map: \"%s\")", hammerId, map);
-					}
+					g_BombSites[i].limitCTs = limitCTs > 0 ? limitCTs : 0;
 					
 					break;
 				}
@@ -134,7 +118,6 @@ public void OnConfigsExecuted()
 	}
 	
 	delete kv;
-	
 	if (g_Cvar_GraceTime)
 	{
 		g_Cvar_GraceTime.IntValue = 0;
@@ -161,29 +144,22 @@ public void OnMapEnd()
 	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
-	kv.ImportFromFile(path);
 	
 	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
-		Format(buffer, sizeof(buffer), "%d", g_BombSites[i].hammerId);
 		if (!g_BombSites[i].Letter || !g_BombSites[i].limitCTs)
 		{
-			if (kv.JumpToKey(buffer))
-			{
-				kv.DeleteThis();
-				kv.GoBack();
-			}
-			
 			continue;
 		}
 		
-		if (!kv.JumpToKey(buffer, true))
-		{
-			continue;
-		}
+		Format(buffer, sizeof(buffer), "%d", i);
+		kv.JumpToKey(buffer, true);
+		
+		kv.SetVector("origin", g_BombSites[i].vecOrigin);
 		
 		Format(buffer, sizeof(buffer), "%c", g_BombSites[i].Letter);
 		kv.SetString("letter", buffer);
+		
 		kv.SetNum("ct_limit", g_BombSites[i].limitCTs);		
 		kv.GoBack();
 	}
@@ -381,15 +357,7 @@ public int Menu_BombsiteOptionsHandler(Menu menu, MenuAction action, int param1,
 			{
 				case 0:
 				{
-					int entity = g_BombSites[selectedBombsite].entityId;
-					float position[3], vecMins[3], vecMaxs[3];
-					
-					GetEntPropVector(entity, Prop_Send, "m_vecMins", vecMins); 
-					GetEntPropVector(entity, Prop_Send, "m_vecMaxs", vecMaxs);
-					
-					GetMiddleOfABox(vecMins, vecMaxs, position);
-					TeleportEntity(param1, position, NULL_VECTOR, NULL_VECTOR);
-					
+					TeleportEntity(param1, g_BombSites[selectedBombsite].vecOrigin, NULL_VECTOR, NULL_VECTOR);
 					CPrintToChat(param1, "%t", "Teleported to Bombsite", selectedBombsite + 1);
 					DisplayMenuBombsiteOptions(param1);
 				}
@@ -492,11 +460,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	return Plugin_Handled;
 }
 
-int GetEntityHammerId(int entity)
-{
-	return GetEntProp(entity, Prop_Data, "m_iHammerID");
-}
-
 bool IsWarmupPeriod()
 {
 	if (g_EngineVersion != Engine_CSGO)
@@ -532,4 +495,17 @@ void GetMiddleOfABox(const float vec1[3], const float vec2[3], float result[3])
 	}
 	
 	AddVectors(vec1, buffer, result);
+}
+
+bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
+{
+	for (int i = 0; i < 3; i++)
+	{
+		if (vec[i] < mins[i] || vec[i] > maxs[i])
+		{
+			return false;
+		}
+	}
+	
+	return true;
 }
