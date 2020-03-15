@@ -1,3 +1,8 @@
 # Changelog
-## 2020-03-07
+
+### 2020-03-15
+- Added support for Counter-Strike Source
+- Replaced hammerid to entity origin as unique identitfiers for bombsites in config files.
+
+### 2020-03-07
 - Added bombsites settings (example: "Bombsite 2 (B - 5)") in primary menu.
