@@ -9,7 +9,7 @@ public Plugin myinfo =
 	name = "Bombsite Limiter",
 	author = "Ilusion9",
 	description = "Disable specified bombsites if there are fewer CTs than their accepted limit",
-	version = "3.1",
+	version = "3.0",
 	url = "https://github.com/Ilusion9/"
 };
 
@@ -83,7 +83,6 @@ public void OnMapStart()
 public void OnConfigsExecuted()
 {
 	int limitCTs;
-	float origin[3];
 	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH], buffer[256];	
 	
 	GetCurrentMap(map, sizeof(map));
@@ -92,28 +91,21 @@ public void OnConfigsExecuted()
 	
 	if (kv.ImportFromFile(path))
 	{
-		if (kv.GotoFirstSubKey(false))
+		for (int i = 0; i < g_NumOfBombSites; i++)
 		{
-			do
+			Format(buffer, sizeof(buffer), "%0.6f %0.6f %0.6f", g_BombSites[i].vecOrigin[0], g_BombSites[i].vecOrigin[1], g_BombSites[i].vecOrigin[2]);
+			if (!kv.JumpToKey(buffer))
 			{
-				for (int i = 0; i < g_NumOfBombSites; i++)
-				{
-					kv.GetVector("origin", origin);
-					if (!IsVecBetween(origin, g_BombSites[i].vecMins, g_BombSites[i].vecMaxs))
-					{
-						continue;
-					}
-					
-					kv.GetString("letter", buffer, sizeof(buffer), "");					
-					g_BombSites[i].Letter = IsCharAlpha(buffer[0]) ? CharToUpper(buffer[0]) : 0;
-					
-					limitCTs = kv.GetNum("ct_limit", 0);
-					g_BombSites[i].limitCTs = limitCTs > 0 ? limitCTs : 0;
-					
-					break;
-				}
-				
-			} while (kv.GotoNextKey(false));
+				continue;
+			}
+			
+			kv.GetString("letter", buffer, sizeof(buffer), "");				
+			g_BombSites[i].Letter = IsCharAlpha(buffer[0]) ? CharToUpper(buffer[0]) : 0;
+			
+			limitCTs = kv.GetNum("ct_limit", 0);
+			g_BombSites[i].limitCTs = limitCTs > 0 ? limitCTs : 0;
+			
+			kv.GoBack();
 		}
 	}
 	
@@ -152,10 +144,8 @@ public void OnMapEnd()
 			continue;
 		}
 		
-		Format(buffer, sizeof(buffer), "%d", i);
+		Format(buffer, sizeof(buffer), "%0.6f %0.6f %0.6f", g_BombSites[i].vecOrigin[0], g_BombSites[i].vecOrigin[1], g_BombSites[i].vecOrigin[2]);
 		kv.JumpToKey(buffer, true);
-		
-		kv.SetVector("origin", g_BombSites[i].vecOrigin);
 		
 		Format(buffer, sizeof(buffer), "%c", g_BombSites[i].Letter);
 		kv.SetString("letter", buffer);
@@ -183,12 +173,7 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	delete g_Timer_FreezeEnd;
 	
-	if (!g_NumOfBombSites)
-	{
-		return;
-	}
-	
-	if (IsWarmupPeriod())
+	if (!g_NumOfBombSites || IsWarmupPeriod())
 	{
 		return;
 	}
@@ -205,6 +190,7 @@ public Action Timer_HandleFreezeEnd(Handle timer, any data)
 	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
 		AcceptEntityInput(g_BombSites[i].entityId, "Enable");
+		
 		if (!g_BombSites[i].limitCTs || !g_BombSites[i].Letter)
 		{
 			continue;
@@ -495,17 +481,4 @@ void GetMiddleOfABox(const float vec1[3], const float vec2[3], float result[3])
 	}
 	
 	AddVectors(vec1, buffer, result);
-}
-
-bool IsVecBetween(const float vec[3], const float mins[3], const float maxs[3]) 
-{
-	for (int i = 0; i < 3; i++)
-	{
-		if (vec[i] < mins[i] || vec[i] > maxs[i])
-		{
-			return false;
-		}
-	}
-	
-	return true;
 }
