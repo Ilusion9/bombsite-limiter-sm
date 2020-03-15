@@ -131,6 +131,6 @@
 	
 	"Abort Action"
 	{
-		"en"			"Type {lightred}'cancel'{default} to abort this action."
+		"en"			"Type {red}'cancel'{default} to abort this action."
 	}
 }
