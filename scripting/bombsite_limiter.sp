@@ -1,7 +1,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
-#include <colorlib_sample>
+#include <multicolors>
 #pragma newdecls required
 
 public Plugin myinfo =
@@ -13,13 +13,12 @@ public Plugin myinfo =
 	url = "https://github.com/Ilusion9/"
 };
 
-#define MAXBOMBSITES	10
 enum struct SiteInfo
 {
 	int entityId;
 	int hammerId;
 	char Letter;
-	int LimitCT;
+	int limitCTs;
 }
 
 enum ChangeState
@@ -31,16 +30,23 @@ enum ChangeState
 
 ConVar g_Cvar_GraceTime;
 ConVar g_Cvar_FreezeTime;
+EngineVersion g_EngineVersion;
 Handle g_Timer_FreezeEnd;
 
-SiteInfo g_BombSites[MAXBOMBSITES];
-int g_NumOfBombSites;
-
+SiteInfo g_BombSites[16];
 ChangeState g_ChangingSettings[MAXPLAYERS + 1];
+
+int g_NumOfBombSites;
 int g_SelectedBombSite[MAXPLAYERS + 1];
 
 public void OnPluginStart()
 {
+	g_EngineVersion = GetEngineVersion();
+	if (g_EngineVersion != Engine_CSGO && g_EngineVersion != Engine_CSS)
+	{
+		SetFailState("This plugin is designed only for CS:GO and CS:S.");
+	}
+	
 	LoadTranslations("common.phrases");
 	LoadTranslations("bombsite_limiter.phrases");
 	
@@ -48,16 +54,7 @@ public void OnPluginStart()
 	HookEvent("round_start", Event_RoundStart);	
 	
 	g_Cvar_GraceTime = FindConVar("mp_join_grace_time");
-	g_Cvar_GraceTime.AddChangeHook(ConVarChange_GraceTime);
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
-}
-
-public void ConVarChange_GraceTime(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	if (g_Cvar_GraceTime.IntValue != 0)
-	{
-		g_Cvar_GraceTime.IntValue = 0;
-	}
 }
 
 public void OnMapStart()
@@ -70,16 +67,15 @@ public void OnMapStart()
 		g_BombSites[g_NumOfBombSites].entityId = entity;
 		g_BombSites[g_NumOfBombSites].hammerId = GetEntityHammerId(entity);
 		g_BombSites[g_NumOfBombSites].Letter = 0;
-		g_BombSites[g_NumOfBombSites].LimitCT = 0;
+		g_BombSites[g_NumOfBombSites].limitCTs = 0;
 		g_NumOfBombSites++;
 	}
 }
 
 public void OnConfigsExecuted()
 {
-	g_Cvar_GraceTime.IntValue = 0;
-	
-	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
+	int hammerId, limitCTs;
+	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH], buffer[256];	
 	GetCurrentMap(map, sizeof(map));
 	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
@@ -87,9 +83,6 @@ public void OnConfigsExecuted()
 	
 	if (kv.ImportFromFile(path))
 	{
-		int hammerId;
-		char buffer[256];
-		
 		if (kv.GotoFirstSubKey(false))
 		{
 			do
@@ -112,21 +105,24 @@ public void OnConfigsExecuted()
 					}
 					
 					kv.GetString("letter", buffer, sizeof(buffer), "");					
-					if (!IsCharAlpha(buffer[0]))
+					if (IsCharAlpha(buffer[0]))
+					{
+						g_BombSites[i].Letter = CharToUpper(buffer[0]);
+					}
+					else
 					{
 						g_BombSites[i].Letter = 0;
-						g_BombSites[i].LimitCT = 0;
 						LogError("Invalid letter specified for section \"%d\" (map: \"%s\")", hammerId, map);
-						break;
 					}
 					
-					g_BombSites[i].Letter = CharToUpper(buffer[0]);
-					g_BombSites[i].LimitCT = kv.GetNum("ct_limit", 0);
-					
-					if (g_BombSites[i].LimitCT < 1)
+					limitCTs = kv.GetNum("ct_limit", 0);
+					if (limitCTs > 0)
 					{
-						g_BombSites[i].Letter = 0;
-						g_BombSites[i].LimitCT = 0;
+						g_BombSites[i].limitCTs = limitCTs;
+					}
+					else
+					{
+						g_BombSites[i].limitCTs = 0;
 						LogError("Invalid limit of CTs specified for section \"%d\" (map: \"%s\")", hammerId, map);
 					}
 					
@@ -138,17 +134,23 @@ public void OnConfigsExecuted()
 	}
 	
 	delete kv;
+	
+	if (g_Cvar_GraceTime)
+	{
+		g_Cvar_GraceTime.IntValue = 0;
+	}
 }
 
 public void OnMapEnd()
 {
 	delete g_Timer_FreezeEnd;
+	
 	if (!g_NumOfBombSites)
 	{
 		return;
 	}
 	
-	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH];	
+	char map[PLATFORM_MAX_PATH], path[PLATFORM_MAX_PATH], buffer[256];	
 	GetCurrentMap(map, sizeof(map));
 	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter");
@@ -159,14 +161,12 @@ public void OnMapEnd()
 	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
 	KeyValues kv = new KeyValues("Bombsites");
-	
 	kv.ImportFromFile(path);
-	char buffer[256];
 	
 	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
 		Format(buffer, sizeof(buffer), "%d", g_BombSites[i].hammerId);
-		if (!g_BombSites[i].Letter || !g_BombSites[i].LimitCT)
+		if (!g_BombSites[i].Letter || !g_BombSites[i].limitCTs)
 		{
 			if (kv.JumpToKey(buffer))
 			{
@@ -184,7 +184,7 @@ public void OnMapEnd()
 		
 		Format(buffer, sizeof(buffer), "%c", g_BombSites[i].Letter);
 		kv.SetString("letter", buffer);
-		kv.SetNum("ct_limit", g_BombSites[i].LimitCT);		
+		kv.SetNum("ct_limit", g_BombSites[i].limitCTs);		
 		kv.GoBack();
 	}
 	
@@ -206,41 +206,45 @@ public void OnClientDisconnect_Post(int client)
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
 {
 	delete g_Timer_FreezeEnd;
+	
+	if (!g_NumOfBombSites)
+	{
+		return;
+	}
+	
 	if (IsWarmupPeriod())
 	{
 		return;
 	}
 	
-	g_Timer_FreezeEnd = CreateTimer(g_Cvar_FreezeTime.FloatValue + 1.0, Timer_HandleFreezeEnd);
+	float freezeTime = g_Cvar_FreezeTime ? g_Cvar_FreezeTime.FloatValue + 1.0 : 1.0;
+	g_Timer_FreezeEnd = CreateTimer(freezeTime, Timer_HandleFreezeEnd);
 }
 
 public Action Timer_HandleFreezeEnd(Handle timer, any data)
 {
-	if (g_NumOfBombSites)
+	bool hasRestrictions = false;
+	int numOfCTs = GetCounterTerroristsCount();
+	
+	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
-		bool hasRestrictions = false;
-		int numOfCTs = GetCounterTerroristsCount();
-		
-		for (int i = 0; i < g_NumOfBombSites; i++)
+		AcceptEntityInput(g_BombSites[i].entityId, "Enable");
+		if (!g_BombSites[i].limitCTs || !g_BombSites[i].Letter)
 		{
-			AcceptEntityInput(g_BombSites[i].entityId, "Enable");
-			if (!g_BombSites[i].LimitCT || !g_BombSites[i].Letter)
-			{
-				continue;
-			}
-			
-			if (numOfCTs < g_BombSites[i].LimitCT)
-			{
-				hasRestrictions = true;
-				AcceptEntityInput(g_BombSites[i].entityId, "Disable");
-				CPrintToChatAll("> %t", "Bombsite Restricted with Reason", g_BombSites[i].Letter, g_BombSites[i].LimitCT);
-			}
+			continue;
 		}
 		
-		if (!hasRestrictions)
+		if (numOfCTs < g_BombSites[i].limitCTs)
 		{
-			CPrintToChatAll("> %t", "No Bombsites Restricted");
+			hasRestrictions = true;
+			AcceptEntityInput(g_BombSites[i].entityId, "Disable");
+			CPrintToChatAll("> %t", "Bombsite Restricted with Reason", g_BombSites[i].Letter, g_BombSites[i].limitCTs);
 		}
+	}
+	
+	if (!hasRestrictions)
+	{
+		CPrintToChatAll("> %t", "No Bombsites Restricted");
 	}
 	
 	g_Timer_FreezeEnd = null;
@@ -259,21 +263,21 @@ public Action Command_Bombsites(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	ShowBombSitesMenu(client);
+	DisplayMenuAllBombsites(client);
 	return Plugin_Handled;
 }
 
-void ShowBombSitesMenu(int client)
+void DisplayMenuAllBombsites(int client)
 {
 	char buffer[256];
-	Menu menu = new Menu(Menu_BombSitesHandler);
+	Menu menu = new Menu(Menu_AllBombsitesHandler);
 	menu.SetTitle("%T", "Bombsites", client);
 	
 	for (int i = 0; i < g_NumOfBombSites; i++)
 	{
-		if (g_BombSites[i].Letter && g_BombSites[i].LimitCT)
+		if (g_BombSites[i].Letter && g_BombSites[i].limitCTs)
 		{
-			Format(buffer, sizeof(buffer), "%T", "Bombsite Number with Settings", client, i + 1, g_BombSites[i].Letter, g_BombSites[i].LimitCT);
+			Format(buffer, sizeof(buffer), "%T", "Bombsite Number with Settings", client, i + 1, g_BombSites[i].Letter, g_BombSites[i].limitCTs);
 		}
 		else
 		{
@@ -286,7 +290,7 @@ void ShowBombSitesMenu(int client)
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
-public int Menu_BombSitesHandler(Menu menu, MenuAction action, int param1, int param2)
+public int Menu_AllBombsitesHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	switch (action)
 	{
@@ -298,16 +302,16 @@ public int Menu_BombSitesHandler(Menu menu, MenuAction action, int param1, int p
 		case MenuAction_Select:
 		{
 			g_SelectedBombSite[param1] = param2;
-			ShowOptionsMenu(param1);
+			DisplayMenuBombsiteOptions(param1);
 		}
 	}
 }
 
-void ShowOptionsMenu(int client)
+void DisplayMenuBombsiteOptions(int client)
 {
 	char buffer[256];
 	int selectedBombsite = g_SelectedBombSite[client];
-	Menu menu = new Menu(Menu_OptionsHandler);
+	Menu menu = new Menu(Menu_BombsiteOptionsHandler);
 	
 	menu.SetTitle("%T", "Bombsite Number", client, selectedBombsite + 1);
 	Format(buffer, sizeof(buffer), "%T", "Teleport to Bombsite", client);
@@ -323,9 +327,9 @@ void ShowOptionsMenu(int client)
 	}
 	menu.AddItem("", buffer);
 	
-	if (g_BombSites[selectedBombsite].LimitCT)
+	if (g_BombSites[selectedBombsite].limitCTs)
 	{
-		Format(buffer, sizeof(buffer), "%T", "Bombsite Change Limit", client, g_BombSites[selectedBombsite].LimitCT);
+		Format(buffer, sizeof(buffer), "%T", "Bombsite Change Limit", client, g_BombSites[selectedBombsite].limitCTs);
 	}
 	else
 	{
@@ -334,13 +338,13 @@ void ShowOptionsMenu(int client)
 	menu.AddItem("", buffer, g_BombSites[selectedBombsite].Letter ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	
 	Format(buffer, sizeof(buffer), "%T", "Bombsite Remove Settings", client);
-	menu.AddItem("", buffer, g_BombSites[selectedBombsite].LimitCT && g_BombSites[selectedBombsite].Letter ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
+	menu.AddItem("", buffer, g_BombSites[selectedBombsite].limitCTs && g_BombSites[selectedBombsite].Letter ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED);
 	
 	menu.ExitBackButton = true;
 	menu.Display(client, MENU_TIME_FOREVER);
 }
 
-public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int param2)
+public int Menu_BombsiteOptionsHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	switch (action)
 	{
@@ -366,7 +370,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 			
 			if (param2 == MenuCancel_ExitBack)
 			{
-				ShowBombSitesMenu(param1);
+				DisplayMenuAllBombsites(param1);
 			}
 		}
 		
@@ -387,7 +391,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					TeleportEntity(param1, position, NULL_VECTOR, NULL_VECTOR);
 					
 					CPrintToChat(param1, "%t", "Teleported to Bombsite", selectedBombsite + 1);
-					ShowOptionsMenu(param1);
+					DisplayMenuBombsiteOptions(param1);
 				}
 				
 				case 1:
@@ -400,7 +404,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					g_ChangingSettings[param1] = Changing_Letter;
 					CPrintToChat(param1, "%t", "Type Bombsite Letter", selectedBombsite + 1);
 					CPrintToChat(param1, "%t", "Abort Action");
-					ShowOptionsMenu(param1);
+					DisplayMenuBombsiteOptions(param1);
 				}
 				
 				case 2:
@@ -413,7 +417,7 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					g_ChangingSettings[param1] = Changing_Limit;
 					CPrintToChat(param1, "%t", "Type Bombsite Limit", selectedBombsite + 1);
 					CPrintToChat(param1, "%t", "Abort Action");
-					ShowOptionsMenu(param1);
+					DisplayMenuBombsiteOptions(param1);
 				}
 				
 				case 3:
@@ -431,10 +435,10 @@ public int Menu_OptionsHandler(Menu menu, MenuAction action, int param1, int par
 					}
 
 					g_BombSites[selectedBombsite].Letter = 0;
-					g_BombSites[selectedBombsite].LimitCT = 0;
+					g_BombSites[selectedBombsite].limitCTs = 0;
 					
 					CPrintToChat(param1, "%t", "Bombsite Settings Removed", selectedBombsite + 1);
-					ShowOptionsMenu(param1);
+					DisplayMenuBombsiteOptions(param1);
 				}
 			}
 		}
@@ -479,12 +483,12 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			return Plugin_Handled;
 		}
 		
-		g_BombSites[selectedBombsite].LimitCT = limit;
+		g_BombSites[selectedBombsite].limitCTs = limit;
 		CPrintToChat(client, "%t", "Bombsite Limit Changed", selectedBombsite + 1);
 	}
 	
 	g_ChangingSettings[client] = Not_Changing;
-	ShowOptionsMenu(client);
+	DisplayMenuBombsiteOptions(client);
 	return Plugin_Handled;
 }
 
@@ -495,6 +499,11 @@ int GetEntityHammerId(int entity)
 
 bool IsWarmupPeriod()
 {
+	if (g_EngineVersion != Engine_CSGO)
+	{
+		return false;
+	}
+	
 	return view_as<bool>(GameRules_GetProp("m_bWarmupPeriod"));
 }
 
