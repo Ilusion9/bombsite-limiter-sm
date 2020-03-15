@@ -156,7 +156,7 @@ public void OnMapEnd()
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter");
 	if (!DirExists(path))
 	{
-		CreateDirectory(path, 0777);
+		CreateDirectory(path, 511);
 	}
 	
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter/%s.cfg", map);
