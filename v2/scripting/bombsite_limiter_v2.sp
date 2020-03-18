@@ -83,7 +83,7 @@ void LoadMapConfiguration()
 	GetRadarLetters();
 	
 	char path[PLATFORM_MAX_PATH];
-	KeyValues kv = new KeyValues("BombSites"); 
+	KeyValues kv = new KeyValues("Bombsites"); 
 	BuildPath(Path_SM, path, sizeof(path), "configs/bombsite_limiter.cfg");
 	
 	if (!kv.ImportFromFile(path)) 
