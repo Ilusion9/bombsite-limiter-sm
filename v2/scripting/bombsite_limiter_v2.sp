@@ -1,8 +1,8 @@
 #include <sourcemod>
 #include <sdktools> 
 #include <cstrike> 
-#include <multicolors> 
-#pragma newdecls required
+#include <sourcecolors> 
+#pragma newdecls required 
 
 public Plugin myinfo =
 {
@@ -30,12 +30,6 @@ EngineVersion g_EngineVersion;
 Handle g_Timer_FreezeEnd;
 
 bool g_IsMapConfigLoaded;
-bool g_IsPluginLoadedLate;
-
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
-	g_IsPluginLoadedLate = late;
-}
 
 public void OnPluginStart() 
 {
@@ -50,10 +44,19 @@ public void OnPluginStart()
 	
 	g_Cvar_GraceTime = FindConVar("mp_join_grace_time");
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
+	
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i))
+		{
+			OnClientPutInServer(i);
+		}
+	}
 }
 
 public void OnMapStart()
 {
+	g_IsMapConfigLoaded = false;
 	g_NumOfBombSites = 0;
 	int entity = -1;
 
@@ -69,9 +72,15 @@ public void OnMapStart()
 	}
 }
 
-public void OnConfigsExecuted()
+public void OnMapEnd()
 {
-	if (g_IsPluginLoadedLate && !g_IsMapConfigLoaded)
+	g_IsMapConfigLoaded = false;
+	delete g_Timer_FreezeEnd;
+}
+
+public void OnClientPutInServer()
+{
+	if (!g_IsMapConfigLoaded)
 	{
 		LoadMapConfiguration();
 		g_IsMapConfigLoaded = true;
@@ -94,27 +103,29 @@ void LoadMapConfiguration()
 	}
 	
 	int limitCTs;
-	char map[PLATFORM_MAX_PATH], buffer[256];
-	GetCurrentMap(map, sizeof(map));
+	char currentMap[PLATFORM_MAX_PATH], radarLetter[3], letter[3];
+	GetCurrentMap(currentMap, sizeof(currentMap));
 	
-	if (kv.JumpToKey(map)) 
-	{
-		for (int i = 0; i < g_NumOfBombSites; i++)
+	if (kv.JumpToKey(currentMap))
+	{		
+		if (kv.GotoFirstSubKey(false))
 		{
-			if (!kv.JumpToKey(g_BombSites[i].radarLetter))
-			{
-				continue;
-			}
-			
-			// Get bombsite's letter
-			kv.GetString("letter", buffer, sizeof(buffer), "");				
-			g_BombSites[i].Letter = IsCharAlpha(buffer[0]) ? CharToUpper(buffer[0]) : 0;
-			
-			// Get bombsite's limit
-			limitCTs = kv.GetNum("ct_limit", 0);
-			g_BombSites[i].limitCTs = limitCTs > 0 ? limitCTs : 0;
-			
-			kv.GoBack();
+			do {
+				kv.GetString("radar_letter", radarLetter, sizeof(radarLetter), "");				
+				kv.GetString("letter", letter, sizeof(letter), "");				
+				limitCTs = kv.GetNum("ct_limit", 0);
+				
+				for (int i = 0; i < g_NumOfBombSites; i++)
+				{					
+					if (g_BombSites[i].radarLetter == radarLetter[0])
+					{						
+						g_BombSites[i].Letter = letter[0];
+						g_BombSites[i].limitCTs = limitCTs;
+						break;
+					}
+				}
+				
+			} while (kv.GotoNextKey(false));
 		}
 	}
 	
@@ -124,20 +135,6 @@ void LoadMapConfiguration()
 	if (g_Cvar_GraceTime)
 	{
 		g_Cvar_GraceTime.IntValue = 0;
-	}
-}
-
-public void OnMapEnd()
-{
-	delete g_Timer_FreezeEnd;
-}
-
-public void OnClientConnected()
-{
-	if (!g_IsMapConfigLoaded)
-	{
-		LoadMapConfiguration();
-		g_IsMapConfigLoaded = true;
 	}
 }
 
