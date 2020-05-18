@@ -8,6 +8,6 @@
 	"Bombsite Restricted with Reason"
 	{
 		"#format"		"{1:c},{2:d}"
-		"en"			"{red}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
+		"en"			"{$red}Bombsite {1}{$default} is restricted this round due to fewer CTs than {2}."
 	}
 }
