@@ -21,15 +21,15 @@ enum struct SiteInfo
 	int limitCTs;
 }
 
-SiteInfo g_BombSites[16];
-int g_NumOfBombSites;
-
 ConVar g_Cvar_GraceTime;
 ConVar g_Cvar_FreezeTime;
 EngineVersion g_EngineVersion;
 Handle g_Timer_FreezeEnd;
 
 bool g_IsMapConfigLoaded;
+char g_RestrictedInfo[256];
+int g_NumOfBombSites;
+SiteInfo g_BombSites[16];
 
 public void OnPluginStart() 
 {
@@ -45,12 +45,10 @@ public void OnPluginStart()
 	g_Cvar_GraceTime = FindConVar("mp_join_grace_time");
 	g_Cvar_FreezeTime = FindConVar("mp_freezetime");
 	
-	for (int i = 1; i <= MaxClients; i++)
+	if (GetClientCount())
 	{
-		if (IsClientInGame(i))
-		{
-			OnClientPutInServer(i);
-		}
+		GetMapConfiguration();
+		g_IsMapConfigLoaded = true;
 	}
 }
 
@@ -58,18 +56,6 @@ public void OnMapStart()
 {
 	g_IsMapConfigLoaded = false;
 	g_NumOfBombSites = 0;
-	int entity = -1;
-
-	while ((entity = FindEntityByClassname(entity, "func_bomb_target")) != -1)
-	{
-		g_BombSites[g_NumOfBombSites].entityId = entity;
-		
-		g_BombSites[g_NumOfBombSites].radarLetter = 0;
-		g_BombSites[g_NumOfBombSites].Letter = 0;
-		g_BombSites[g_NumOfBombSites].limitCTs = 0;
-		
-		g_NumOfBombSites++;
-	}
 }
 
 public void OnMapEnd()
@@ -82,14 +68,131 @@ public void OnClientPutInServer()
 {
 	if (!g_IsMapConfigLoaded)
 	{
-		LoadMapConfiguration();
+		GetMapConfiguration();
 		g_IsMapConfigLoaded = true;
 	}
 }
 
-void LoadMapConfiguration()
+public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
 {
-	GetRadarLetters();
+	delete g_Timer_FreezeEnd;
+	Format(g_RestrictedInfo, sizeof(g_RestrictedInfo), "");
+	
+	if (!g_NumOfBombSites || IsWarmupPeriod())
+	{
+		return;
+	}
+	
+	float freezeTime = g_Cvar_FreezeTime ? g_Cvar_FreezeTime.FloatValue : 0.1;
+	g_Timer_FreezeEnd = CreateTimer(freezeTime, Timer_HandleFreezeEnd);
+}
+
+// Timer functions
+public Action Timer_DisplayInfo(Handle timer, any data)
+{
+	if (!g_RestrictedInfo[0])
+	{
+		return Plugin_Continue;
+	}
+	
+	SetHudTextParams(-1.0, 0.8, 1.05, 255, 255, 255, 1, 1, 0.05, 0.0, 0.0);
+	ShowHudTextToAll(7, g_RestrictedInfo);
+	return Plugin_Continue;
+}
+
+public Action Timer_HandleFreezeEnd(Handle timer, any data)
+{
+	char buffer[64];
+	int numRestricted = 0;
+	int numOfCTs = GetCounterTerroristsCount();
+	
+	for (int i = 0; i < g_NumOfBombSites; i++)
+	{
+		AcceptEntityInput(g_BombSites[i].entityId, "Enable");
+		
+		if (!g_BombSites[i].limitCTs || !g_BombSites[i].Letter)
+		{
+			continue;
+		}
+		
+		if (numOfCTs < g_BombSites[i].limitCTs)
+		{
+			numRestricted++;
+			AcceptEntityInput(g_BombSites[i].entityId, "Disable");
+			CPrintToChatAll("> %t", "Bombsite Restricted with Reason", g_BombSites[i].Letter, g_BombSites[i].limitCTs);
+			
+			if (buffer[0])
+			{
+				Format(buffer, sizeof(buffer), "%s, %c", buffer, g_BombSites[i].Letter);
+			}
+			else
+			{
+				Format(buffer, sizeof(buffer), "%c", g_BombSites[i].Letter);
+			}
+		}
+	}
+	
+	if (!numRestricted)
+	{
+		CPrintToChatAll("> %t", "No Bombsites Restricted");
+	}
+	else
+	{
+		Format(g_RestrictedInfo, sizeof(g_RestrictedInfo), "Bombsite%s %s %s restricted!", (numRestricted > 1) ? "s" : "", buffer, (numRestricted > 1) ? "are" : "is");
+	}
+	
+	g_Timer_FreezeEnd = null;
+}
+
+// Functions
+void GetMapConfiguration()
+{
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "func_bomb_target")) != -1)
+	{
+		g_BombSites[g_NumOfBombSites].entityId = entity;
+		
+		g_BombSites[g_NumOfBombSites].radarLetter = 0;
+		g_BombSites[g_NumOfBombSites].Letter = 0;
+		g_BombSites[g_NumOfBombSites].limitCTs = 0;
+		
+		g_NumOfBombSites++;
+	}
+	
+	if (!g_NumOfBombSites)
+	{
+		return;
+	}
+		
+	float vecCenterA[3], vecCenterB[3], vecMins[3], vecMaxs[3];
+	entity = FindEntityByClassname(-1, "cs_player_manager");
+    
+	if (entity != -1)
+	{
+		GetEntPropVector(entity, Prop_Send, "m_bombsiteCenterA", vecCenterA);
+		GetEntPropVector(entity, Prop_Send, "m_bombsiteCenterB", vecCenterB);
+	}
+    
+	for (int i = 0; i < g_NumOfBombSites; i++)
+	{
+		GetEntPropVector(g_BombSites[i].entityId, Prop_Send, "m_vecMins", vecMins);
+		GetEntPropVector(g_BombSites[i].entityId, Prop_Send, "m_vecMaxs", vecMaxs);
+        
+		if (IsVecBetween(vecCenterA, vecMins, vecMaxs))
+		{
+			g_BombSites[i].radarLetter = 'A';
+		}
+		
+		else if (IsVecBetween(vecCenterB, vecMins, vecMaxs))
+		{
+			g_BombSites[i].radarLetter = 'B';
+		}
+		
+		else
+		{
+			g_BombSites[i].radarLetter = 'C';
+		}
+	}
 	
 	char path[PLATFORM_MAX_PATH];
 	KeyValues kv = new KeyValues("Bombsites"); 
@@ -131,54 +234,12 @@ void LoadMapConfiguration()
 	
 	delete kv;
 	
-	// Players should not be spawned after the round starts
 	if (g_Cvar_GraceTime)
 	{
 		g_Cvar_GraceTime.IntValue = 0;
 	}
-}
-
-public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast) 
-{
-	delete g_Timer_FreezeEnd;
 	
-	if (!g_NumOfBombSites || IsWarmupPeriod())
-	{
-		return;
-	}
-	
-	float freezeTime = g_Cvar_FreezeTime ? g_Cvar_FreezeTime.FloatValue + 1.0 : 1.0;
-	g_Timer_FreezeEnd = CreateTimer(freezeTime, Timer_HandleFreezeEnd);
-}
-
-public Action Timer_HandleFreezeEnd(Handle timer, any data)
-{
-	bool hasRestrictions = false;
-	int numOfCTs = GetCounterTerroristsCount();
-	
-	for (int i = 0; i < g_NumOfBombSites; i++)
-	{
-		AcceptEntityInput(g_BombSites[i].entityId, "Enable");
-		
-		if (!g_BombSites[i].limitCTs || !g_BombSites[i].Letter)
-		{
-			continue;
-		}
-		
-		if (numOfCTs < g_BombSites[i].limitCTs)
-		{
-			hasRestrictions = true;
-			AcceptEntityInput(g_BombSites[i].entityId, "Disable");
-			CPrintToChatAll("> %t", "Bombsite Restricted with Reason", g_BombSites[i].Letter, g_BombSites[i].limitCTs);
-		}
-	}
-	
-	if (!hasRestrictions)
-	{
-		CPrintToChatAll("> %t", "No Bombsites Restricted");
-	}
-	
-	g_Timer_FreezeEnd = null;
+	CreateTimer(1.0, Timer_DisplayInfo, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
 bool IsWarmupPeriod()
@@ -189,39 +250,6 @@ bool IsWarmupPeriod()
 	}
 	
 	return view_as<bool>(GameRules_GetProp("m_bWarmupPeriod"));
-}
-
-void GetRadarLetters()
-{
-	float vecCenterA[3], vecCenterB[3], vecMins[3], vecMaxs[3];
-	int ent = FindEntityByClassname(-1, "cs_player_manager");
-    
-	if (ent != -1)
-	{
-		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterA", vecCenterA);
-		GetEntPropVector(ent, Prop_Send, "m_bombsiteCenterB", vecCenterB);
-	}
-    
-	for (int i = 0; i < g_NumOfBombSites; i++)
-	{
-		GetEntPropVector(g_BombSites[i].entityId, Prop_Send, "m_vecMins", vecMins);
-		GetEntPropVector(g_BombSites[i].entityId, Prop_Send, "m_vecMaxs", vecMaxs);
-        
-		if (IsVecBetween(vecCenterA, vecMins, vecMaxs))
-		{
-			g_BombSites[i].radarLetter = 'A';
-		}
-		
-		else if (IsVecBetween(vecCenterB, vecMins, vecMaxs))
-		{
-			g_BombSites[i].radarLetter = 'B';
-		}
-		
-		else
-		{
-			g_BombSites[i].radarLetter = 'C';
-		}
-	}
 }
 
 bool IsVecBetween(const float vecVector[3], const float vecMin[3], const float vecMax[3]) 
@@ -235,6 +263,20 @@ bool IsVecBetween(const float vecVector[3], const float vecMin[3], const float v
 	}
 	
 	return true;
+}
+
+void ShowHudTextToAll(int channel, const char[] format, any ...)
+{
+	char buffer[198];
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i)) 
+		{
+			SetGlobalTransTarget(i);
+			VFormat(buffer, sizeof(buffer), format, 3);
+			ShowHudText(i, channel, buffer);
+		}
+	}
 }
 
 int GetCounterTerroristsCount()
