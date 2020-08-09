@@ -9,128 +9,151 @@
 	"No Bombsites Restricted"
 	{
 		"en"			"There are no bombsites restricted this round."
+		"ru"			"Нет ограничений закладки в этом раунде."
 	}
 	
 	"Bombsite Restricted with Reason"
 	{
 		"#format"		"{1:c},{2:d}"
 		"en"			"{red}Bombsite {1}{default} is restricted this round due to fewer CTs than {2}."
+		"ru"			"{red}Точка закладки {1}{default} запрещена пока спецназа меньше {2} человек."
 	}
 	
 	"Map Without Bombsites"
 	{
 		"en"			"This map has no bombsites."
+		"ru"			"Эта карта не имеет точек закладки"
 	}
 	
 	"Bombsites"
 	{
 		"en"			"Bombsites"
+		"ru"			"Точки закладки"
 	}
 	
 	"Bombsite Number"
 	{
 		"#format"		"{1:d}"
 		"en"			"Bombsite {1}"
+		"ru"			"Точка закладки {1}"
 	}
 	
 	"Bombsite Number with Settings"
 	{
 		"#format"		"{1:d},{2:c},{3:d}"
 		"en"			"Bombsite {1} ({2} - {3})"
+		"ru"			"Точка закладки {1} ({2} - {3})"
 	}
 	
 	"Teleport to Bombsite"
 	{
 		"en"			"Teleport to"
+		"ru"			"Телепортироваться к"
 	}
 	
 	"Teleported to Bombsite"
 	{
 		"#format"		"{1:d}"
 		"en"			"{lime}You have been teleported to Bombsite {1}."
+		"ru"			"{lime}Вы были телепортированы к Точке закладки {1}."
 	}
 	
 	"Bombsite Set Letter"
 	{
 		"en"			"Set letter"
+		"ru"			"Задать букву"
 	}
 	
 	"Bombsite Change Letter"
 	{
 		"#format"		"{1:c}"
 		"en"			"Change letter ({1})"
+		"ru"			"Сменить букву ({1})"
 	}
 	
 	"Type Bombsite Letter"
 	{
 		"#format"		"{1:d}"
 		"en"			"{lime}Type in chat the letter of Bombsite {1}."
+		"ru"			"{lime}Введите в чат букву точки закладки {1}."
 	}
 	
 	"Bombsite Invalid Letter"
 	{
 		"en"			"{red}The letter must be between 'A' and 'Z'. Please type again!"
+		"ru"			"{red}Буква должна быть между 'A' и 'Z'. Пожалуйста, введите снова!"
 	}
 	
 	"Action Changing Letter Canceled"
 	{
 		"#format"		"{1:d}"
 		"en"			"{blue}The action to change the letter of Bombsite {1} has been canceled."
+		"ru"			"{blue}Изменение буквы точки {1} было отменено."
 	}
 	
 	"Bombsite Letter Changed"
 	{
 		"#format"		"{1:d}"
 		"en"			"{lime}The letter of Bombsite {1} has been changed."
+		"ru"			"{lime}Буква точки закладки {1} была изменена."
 	}
 	
 	"Bombsite Set Limit"
 	{
 		"en"			"Set limit of CTs"
+		"ru"			"Количество спецназа"
 	}
 	
 	"Bombsite Change Limit"
 	{
 		"#format"		"{1:d}"
 		"en"			"Change limit of CTs ({1})"
+		"ru"			"Изменить количество спецназа ({1})"
 	}
 	
 	"Type Bombsite Limit"
 	{
 		"#format"		"{1:d}"
 		"en"			"{lime}Type in chat the limit of CTs for Bombsite {1}."
+		"ru"			"{lime}Введите в чат количество спецназа для точки {1}."
 	}
 	
 	"Bombsite Invalid Limit"
 	{
 		"en"			"{red}The limit of CTs must be a number and greater than 0. Please type again!"
+		"ru"			"{red}Количество спецназа должно быть больше 0. Пожалуйста, введите заново!"
 	}
 	
 	"Bombsite Limit Changed"
 	{
 		"#format"		"{1:d}"
 		"en"			"{lime}The limit of CTs for Bombsite {1} has been changed."
+		"ru"			"{lime}Количество спецназа для точки {1} было изменено."
 	}
 	
 	"Action Changing Limit Canceled"
 	{
 		"#format"		"{1:d}"
 		"en"			"{blue}The action to change the limit of CTs for Bombsite {1} has been canceled."
+		"ru"			"{blue}Изменение количества спецназа для точки закладки {1} было отменено."
 	}
 	
 	"Bombsite Remove Settings"
 	{
 		"en"			"Remove settings"
+		"ru"			"Удалить настройки"
 	}
 
 	"Bombsite Settings Removed"
 	{
 		"#format"		"{1:d}"
 		"en"			"{blue}The settings of Bombsite {1} have been removed."
+		"ru"			"{blue}Настройки точки закладки {1} были удалены."
 	}
 	
 	"Abort Action"
 	{
 		"en"			"Type {red}'cancel'{default} to abort this action."
+		"ru"			"Напишите {red}'cancel'{default} для отмены действия."
 	}
 }
